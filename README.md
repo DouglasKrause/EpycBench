@@ -36,8 +36,16 @@ and status. Preserve the generated version information with your results.
 
 ## Start menu and demo
 
-Run `./build/release/epycbench` without arguments to choose **1) Help**, **2) Demo test run**, or
-**3) Exit**. Help and the demo return to the menu; end-of-input also exits.
+Run `./build/release/epycbench` without arguments to choose **1) Help**, **2) Demo test run**,
+**3) Inspect this machine**, **4) View machine architecture**, or **5) Exit**.
+The demo and architecture view wait for Enter before returning to the menu;
+end-of-input also exits.
+
+Inspect saves or refreshes `machine-info/machine.json` in the current directory
+and prints its full path. View reads that saved inspection, automatically creating
+it on first use, and shows a compact CPU, cache, memory and NUMA overview with its
+saved timestamp. Long lists are shortened to fit the screen; the JSON retains the
+full details. Inspect again to refresh an existing snapshot.
 
 The built-in demo uses fixed settings: worker CPU 0, service CPU 15 on a separate
 core, and memory nodes 0 and 1. It runs a 64 MiB bandwidth comparison and an 8 MiB
@@ -72,6 +80,10 @@ assumed. Resolution performs no benchmark and does not establish host readiness.
 
 ## Run a benchmark
 
+A settings filename is relative to the current directory: `demo.yaml` means
+`demo.yaml` beside where you launched the command; use `settings/demo.yaml` only
+when you have placed it in that subdirectory. Absolute paths also work.
+
 The build automatically checks the compiled measurement routines for obvious
 failures to perform their intended memory work. No assembly review, approval files
 or second compiler are required. Ordinary compiler variations are accepted;
@@ -101,8 +113,28 @@ machine; preserve raw evidence and state the conditions of any performance claim
 ```
 
 Validation checks canonical structure, integrity, associations and statistical
-recalculation. Export validates its source first. Reduced profiles remain linkable
-and are not anonymous. Treat native Results and journals as private machine data;
+recalculation. Export validates its source first. In a terminal, all four
+profiles save JSON in an `exports/` folder beside the original result and print
+the full saved path. Repeated exports use numbered filenames. Summary export also
+shows a compact performance overview; the other profiles show a save confirmation.
+JSON is the default. Add `--format csv` to any profile to convert its JSON export
+to CSV before saving:
+
+```sh
+./build/release/epycbench result export --profile summary --format csv RESULT.epycbench.json
+```
+
+CSV uses `path,type,value` columns, with one row per value (or empty container).
+Paths identify nested fields and list indexes; no results are recalculated.
+For a chosen destination, redirect as before, for example `> summary.csv`;
+redirected exports contain only the selected format.
+
+After a benchmark publishes its result, it automatically saves a summary export
+and shows the performance summary after the completion/error information. The
+view includes performance values, comparison differences, uncertainty, conclusions
+and sample counts. Larger runs show only the comparisons that fit; the saved JSON
+contains the rest. Reduced profiles remain linkable and are not anonymous.
+Treat native Results and journals as private machine data;
 review any exported artifact before sharing.
 
 `SOURCE-MANIFEST.json` records the distributed relative filenames, sizes and

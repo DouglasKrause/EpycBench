@@ -2,6 +2,8 @@
 
 #include "cli/scenario_command.hpp"
 #include "cli/terminal_menu.hpp"
+#include "cli/machine_commands.hpp"
+#include "platform_linux/presentation_files.hpp"
 #include "cli/results_command.hpp"
 #include "cli/benchmark_run_command.hpp"
 #include "cli/monitoring_q0b_command.hpp"
@@ -31,7 +33,9 @@ auto run(int argc, char* argv[], topology::cli::Environment& environment,
                 char* words[]{program,help};
                 return topology::cli::run(2,words,environment,output,error);
             },
-            [&] {return benchmark_run_command::run_demo(production_authority,output,error);});
+            [&] {return benchmark_run_command::run_demo(production_authority,output,error);},
+            [&] {return inspect_machine(environment,output,error);},
+            [&] {return view_machine(environment,output,error);});
     }
     if (argc >= 2 && std::string_view{argv[1]} == "run")
         return benchmark_run_command::run(argc, argv, production_authority, output, error);
@@ -51,7 +55,8 @@ auto run(int argc, char* argv[], topology::cli::Environment& environment,
         return run_scenario_command(argc, argv, environment, output, error);
     }
     if (argc >= 2 && std::string_view{argv[1]} == "result") {
-        return run_results_command(argc, argv, environment, output, error);
+        return run_results_command(argc, argv, environment, output, error,
+            &output==&std::cout&&platform_linux::presentation_files::stdout_is_terminal());
     }
     return topology::cli::run(argc, argv, environment, output, error);
 }

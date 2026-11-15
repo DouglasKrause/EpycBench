@@ -200,6 +200,7 @@ struct CommandDependencies {
 [[nodiscard]] auto execute(const Arguments&,const runtime::RunnerContext&,
     runtime::ControllerProcessProductionAuthority&,const platform_linux::detail::RunStartIdentity&,
     platform_linux::detail::ControllerSignalScope&,platform_linux::detail::CurrentProcessImage&,
-    std::string_view xdg_runtime,benchmark_run_composition::RunLimits,CommandDependencies)
+    std::string_view xdg_runtime,benchmark_run_composition::RunLimits,CommandDependencies,
+    std::string* final_path = nullptr)
     -> benchmark_run_composition::RunReport;
 }

@@ -1,7 +1,10 @@
 #include "cli/results_command.hpp"
+#include "cli/json_csv.hpp"
 
 #include "core/json_ownership.hpp"
 #include "results/result_export.hpp"
+#include "cli/performance_summary.hpp"
+#include "platform_linux/presentation_files.hpp"
 #include <CLI/CLI.hpp>
 #include <algorithm>
 #include <filesystem>
@@ -21,9 +24,11 @@ constexpr std::size_t run_observations = 8192;
 constexpr std::size_t run_samples = 524288;
 constexpr std::string_view help =
     "Usage: epycbench result validate FILE\n"
-    "Usage: epycbench result export --profile {complete,shareable,summary,observation-table} FILE\n"
+    "Usage: epycbench result export --profile {complete,shareable,summary,observation-table} [--format json|csv] FILE\n"
     "Export validates once. Complete retains all evidence; derived profiles are reduced, linkable, not anonymous.\n"
-    "Offline, read-only validation of a canonical EpycBench Results document.\n"
+    "Exports save beside the result in exports/; redirected output contains only the selected format.\n"
+    "JSON is the default. CSV converts the same JSON into path,type,value rows.\n"
+    "Offline validation of a canonical EpycBench Results document.\n"
     "Supports result revisions 0-2 with matching event profiles v1-v3.\n"
     "A valid document does not imply successful execution or hardware qualification.\n";
 
@@ -725,8 +730,62 @@ auto results_validation_limits(ep::Version version) -> fd::Limits {
     return out;
 }
 
+namespace {
+auto output_results_export(const results::final_document::Validated& document,
+    results::result_export::Profile profile,const std::filesystem::path& source,
+    std::ostream& output,std::ostream& error,ExportFormat format,bool save) -> int {
+    namespace files=platform_linux::presentation_files;
+    try {
+        std::string rendered;
+        std::string_view bytes=document.canonical();
+        if(profile!=results::result_export::Profile::complete) {
+            auto result=results::result_export::render(document,profile);
+            if(!result) {
+                const bool limit=result.error()==results::result_export::Error::limits||
+                    result.error()==results::result_export::Error::overflow;
+                return fail(error,limit?9:1,limit?Diagnostic::limit_exceeded:Diagnostic::internal_failure,true);
+            }
+            rendered=std::move(*result);bytes=rendered;
+        }
+        // Both formats use the same JSON projection and the same save/emit path.
+        std::string csv;
+        std::string_view output_bytes=bytes;
+        if(format==ExportFormat::csv) {
+            auto converted=json_to_csv(bytes);
+            if(!converted) {
+                const bool limit=converted.error()==CsvError::limits;
+                return fail(error,limit?9:1,limit?Diagnostic::limit_exceeded:Diagnostic::internal_failure,true);
+            }
+            csv=std::move(*converted);output_bytes=csv;
+        }
+        if(!save)return emit(output,error,output_bytes,true);
+        const auto parent=source.has_parent_path()?source.parent_path():std::filesystem::path{"."};
+        auto directory=files::ensure_private_subdirectory(parent,"exports");
+        if(!directory)return fail(error,3,Diagnostic::output_io,true);
+        auto filename=source.stem().string()+"."+std::string(results::result_export::name(profile))+
+            (format==ExportFormat::csv?".csv":".json");
+        auto saved=files::save_numbered(*directory,filename,output_bytes);
+        if(!saved)return fail(error,3,Diagnostic::output_io,true);
+        output << "Export saved: " << *saved << '\n';
+        if(profile==results::result_export::Profile::summary) {
+            const auto size=files::terminal_dimensions();
+            output << render_performance_summary(bytes,size.columns,size.rows>8?size.rows-8:1,document.canonical());
+        }
+        return output?0:3;
+    } catch(...) {
+        return fail(error,save?3:1,save?Diagnostic::output_io:Diagnostic::internal_failure,true);
+    }
+}
+} // namespace
+
+auto save_results_export(const results::final_document::Validated& document,
+    results::result_export::Profile profile,const std::filesystem::path& source,
+    std::ostream& output,std::ostream& error,ExportFormat format) -> int {
+    return output_results_export(document,profile,source,output,error,format,true);
+}
+
 auto run_results_command(int argc, char* argv[], topology::cli::Environment& environment,
-                         std::ostream& output, std::ostream& error) -> int {
+                         std::ostream& output, std::ostream& error, bool save_export) -> int {
     const bool exporting = argc > 2 && argv && argv[2] && std::string_view{argv[2]} == "export";
     const auto reject = [&](int status, Diagnostic diagnostic) { return fail(error, status, diagnostic, exporting); };
     try {
@@ -736,10 +795,11 @@ auto run_results_command(int argc, char* argv[], topology::cli::Environment& env
         result->require_subcommand(1, 1);
         auto* validate = result->add_subcommand("validate");
         auto* export_command = result->add_subcommand("export");
-        std::string path, selected_profile;
+        std::string path, selected_profile, selected_format{"json"};
         validate->add_option("FILE", path)->required();
         export_command->add_option("FILE", path)->required();
         export_command->add_option("--profile", selected_profile)->required()->expected(1);
+        export_command->add_option("--format", selected_format)->expected(1);
 
         try {
             app.parse(argc, argv);
@@ -749,7 +809,9 @@ auto run_results_command(int argc, char* argv[], topology::cli::Environment& env
         }
         const auto selected = results::result_export::profile(selected_profile);
         if ((!*validate && !*export_command) || path.empty() || path == "-" ||
-            (*export_command && (!selected || export_command->count("--profile") != 1)))
+            (*export_command && (!selected || export_command->count("--profile") != 1 ||
+                export_command->count("--format") > 1 ||
+                (selected_format != "json" && selected_format != "csv"))))
             return reject(2, Diagnostic::usage);
         if (!environment.read_file) return reject(1, Diagnostic::internal_failure);
         auto bytes = environment.read_file(std::filesystem::path{path});
@@ -772,16 +834,8 @@ auto run_results_command(int argc, char* argv[], topology::cli::Environment& env
         if (*validate) return emit(output, error, "result validate: valid\n");
         // Retire the ordinary file copy before parsing canonical validated bytes.
         std::string{}.swap(*bytes);
-        if (*selected == results::result_export::Profile::complete)
-            return emit(output, error, document->canonical(), true);
-        auto rendered = results::result_export::render(*document, *selected);
-        if (!rendered) {
-            using ExportError = results::result_export::Error;
-            if (rendered.error() == ExportError::limits || rendered.error() == ExportError::overflow)
-                return reject(9, Diagnostic::limit_exceeded);
-            return reject(1, Diagnostic::internal_failure);
-        }
-        return emit(output, error, *rendered, true);
+        const auto format=selected_format=="csv"?ExportFormat::csv:ExportFormat::json;
+        return output_results_export(*document,*selected,path,output,error,format,save_export);
     } catch (ep::Error failure) {
         return reject(9, failure == ep::Error::limits || failure == ep::Error::capacity
                                   ? Diagnostic::limit_exceeded : Diagnostic::invalid_document);

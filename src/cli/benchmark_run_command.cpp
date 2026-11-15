@@ -106,9 +106,19 @@ auto run_prepared(const Arguments& arguments,runtime::ControllerProcessProductio
             journal_prefix={environment,length};
         }
         delegated=true;
+        std::string final_path;
         auto report=execute(arguments,*context,authority,*identity,signals,*image,journal_prefix,
-            std::move(*bounds),std::move(dependencies));
-        return composition::write_summary(report,output,errors);
+            std::move(*bounds),std::move(dependencies),&final_path);
+        const auto status=composition::write_summary(report,output,errors);
+        if(report.final&&report.final->publication&&
+           report.final->publication->receipt.residual==results::final_document::Residual::final&&
+           !final_path.empty()) {
+            output << "Result saved: " << final_path << '\n';
+            const auto exported=save_results_export(report.final->publication->document,
+                results::result_export::Profile::summary,final_path,output,errors);
+            if(!status)return exported;
+        }
+        return status;
     }catch(...){if(!delegated)retire();return diagnostic(1);}
 }
 
@@ -168,7 +178,8 @@ auto read_scenario(const Arguments& arguments,
 auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
     runtime::ControllerProcessProductionAuthority& authority,const platform_linux::detail::RunStartIdentity& identity,
     platform_linux::detail::ControllerSignalScope& signals,platform_linux::detail::CurrentProcessImage& image,
-    std::string_view xdg,benchmark_run_composition::RunLimits limits,CommandDependencies dependencies)
+    std::string_view xdg,benchmark_run_composition::RunLimits limits,CommandDependencies dependencies,
+    std::string* final_path)
     -> benchmark_run_composition::RunReport {
     namespace composition=benchmark_run_composition;
     namespace fs=results::filesystem_journal;
@@ -265,6 +276,7 @@ auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
         auto selected_output=composition::prepare_output(document,xdg,identity);
         if(!selected_output)throw selected_output.error();
         output=std::move(*selected_output);
+        if(final_path)*final_path=output->final_root+"/"+output->final_leaf;
         for(const auto* root:{&output->journal_root,&output->final_root}) {
             auto accepted=platform_linux::journal_file::File::preflight_root(*root,limits.journal.file);
             if(!accepted)throw composition::Error::output_policy;
@@ -290,6 +302,7 @@ auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
             // original Topology owner. C4 must publish the truthful absent ID.
             output->final_leaf=std::string{"unresolved__"}.append(identity.utc_start()).append("__")
                 .append(identity.run_id()).append(".epycbench.json");
+            if(final_path)*final_path=output->final_root+"/"+output->final_leaf;
             if(!observer->creation_failures(time()))throw composition::Error::journal;
             if(prepared->cancelled)throw Cancelled{};
             throw composition::Error::source;

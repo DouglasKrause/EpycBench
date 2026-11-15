@@ -5,3 +5,7 @@ __pycache__/
 
 # Private results from the built-in demo
 epycbench-demo-results/
+
+# Private machine inspections and result exports
+/machine-info/
+/exports/

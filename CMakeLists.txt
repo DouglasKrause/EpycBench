@@ -287,6 +287,7 @@ foreach(module IN LISTS EPYCBENCH_MODULE_TARGETS)
                 src/platform_linux/thread_identity.cpp
                 src/platform_linux/thread_affinity.cpp
                 src/platform_linux/benchmark_run_input.cpp
+                src/platform_linux/presentation_files.cpp
                 src/platform_linux/raw_monotonic_clock.cpp
                 src/platform_linux/thread_rusage.cpp
                 src/platform_linux/memory_mapping.cpp
@@ -2838,6 +2839,9 @@ add_library(
     STATIC
         src/cli/application.cpp
         src/cli/terminal_menu.cpp
+        src/cli/machine_commands.cpp
+        src/cli/performance_summary.cpp
+        src/cli/json_csv.cpp
         src/cli/results_command.cpp
         src/cli/benchmark_run_command.cpp
         src/cli/monitoring_q0b_command.cpp
@@ -6129,6 +6133,27 @@ if(BUILD_TESTING)
     epycbench_enable_warnings(epycbench_terminal_menu_tests)
     add_test(NAME EB-CLI-001.terminal-menu COMMAND epycbench_terminal_menu_tests)
 
+    add_executable(epycbench_machine_commands_tests tests/component/machine_commands_test.cpp)
+    target_include_directories(epycbench_machine_commands_tests PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_machine_commands_tests PRIVATE epycbench_cli Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_machine_commands_tests)
+    epycbench_enable_warnings(epycbench_machine_commands_tests)
+    add_test(NAME EB-CLI-001.machine-view COMMAND epycbench_machine_commands_tests)
+
+    add_executable(epycbench_performance_summary_tests tests/component/performance_summary_test.cpp)
+    target_include_directories(epycbench_performance_summary_tests PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_performance_summary_tests PRIVATE epycbench_cli Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_performance_summary_tests)
+    epycbench_enable_warnings(epycbench_performance_summary_tests)
+    add_test(NAME EB-CLI-001.performance-summary COMMAND epycbench_performance_summary_tests)
+
+    add_executable(epycbench_presentation_files_tests tests/unit/platform_presentation_files_test.cpp)
+    target_include_directories(epycbench_presentation_files_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_presentation_files_tests PRIVATE EpycBench::platform_linux Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_presentation_files_tests)
+    epycbench_enable_warnings(epycbench_presentation_files_tests)
+    add_test(NAME EB-CLI-001.presentation-files COMMAND epycbench_presentation_files_tests)
+
     add_executable(epycbench_demo_scenario_tests tests/component/demo_scenario_test.cpp)
     target_include_directories(epycbench_demo_scenario_tests PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src")
     target_link_libraries(epycbench_demo_scenario_tests PRIVATE EpycBench::scenario
@@ -7042,6 +7067,7 @@ if(BUILD_TESTING)
     epycbench_enable_build_options(epycbench_results_cli_tests)
     epycbench_enable_warnings(epycbench_results_cli_tests)
     add_test(NAME EB-RES-007.results-cli COMMAND epycbench_results_cli_tests "~[completed_profile]~[external_profile]~[external_semantics]~[export_complete]~[export_limits]~[export_sink]")
+    add_test(NAME EB-RES-007.results-export-formats COMMAND epycbench_results_cli_tests "[export_format]")
     foreach(export_case IN ITEMS "v1 completed" "v1 interrupted" "v2 completed" "v2 interrupted")
         string(REPLACE " " "-" export_case_name "${export_case}")
         add_test(NAME EB-RES-007.results-export-${export_case_name} COMMAND epycbench_results_cli_tests "Results export preserves genuine ${export_case} profile")
