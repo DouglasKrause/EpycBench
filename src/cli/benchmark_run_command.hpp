@@ -11,11 +11,21 @@ struct Arguments {
     std::string_view scenario_path;
     scenario::ScenarioFormat format{scenario::ScenarioFormat::yaml};
     bool help{};
+    bool demo{};
 };
 // Arguments after the literal `run`; all views borrow the original argument
 // storage. Parsing performs no allocation, acquisition or environment access.
 [[nodiscard]] auto parse_arguments(std::span<const std::string_view>) noexcept
     -> std::expected<Arguments, ArgumentError>;
+// The built-in demo changes only source acquisition, not Run admission/execution.
+[[nodiscard]] constexpr auto demo_arguments() noexcept -> Arguments {
+    return {"builtin-demo.yaml",scenario::ScenarioFormat::yaml,false,true};
+}
+[[nodiscard]] auto read_scenario(const Arguments&,
+    platform_linux::benchmark_run_input::FileOperations,std::string_view demo_directory={})
+    -> platform_linux::benchmark_run_input::TextRead;
+[[nodiscard]] auto run_demo(runtime::ControllerProcessProductionAuthority&,
+    std::ostream&,std::ostream&) noexcept -> int;
 enum class DependencyMode { native, supplied };
 struct SuppliedKernelPolicy {
     std::string_view root;
@@ -25,16 +35,6 @@ struct SuppliedKernelPolicy {
     results::kernel_approval::ReviewRoute review_route{results::kernel_approval::ReviewRoute::human_approval};
 };
 enum class KernelInputError { admission, unconfigured, acquisition, digest, owner };
-struct KernelReviewPolicy {
-    std::array<core::Sha256Digest,2> approval_digests;
-    results::kernel_approval::ReviewRoute review_route;
-};
-// Source-private parsing of configure-time policy; this does not admit evidence
-// or provide a runtime override of the native selector's compiled inputs.
-[[nodiscard]] auto parse_kernel_review_policy(std::array<std::string_view,2>,std::string_view)
-    -> std::expected<KernelReviewPolicy,KernelInputError>;
-[[nodiscard]] auto configured_kernel_review_policy()
-    -> std::expected<KernelReviewPolicy,KernelInputError>;
 struct KernelSelection {
     std::string_view root;
     std::array<char,64> directory;
@@ -42,8 +42,8 @@ struct KernelSelection {
     DependencyMode mode;
     results::kernel_approval::ReviewRoute review_route;
 };
-// Pure expected-input selection; the returned views borrow the supplied policy.
-// Native selection never consults a supplied root or digest.
+// Historical supplied evidence only; returned views borrow the supplied policy.
+// Native runs do not select or acquire review manifests.
 [[nodiscard]] auto select_kernel_evidence(DependencyMode,const SuppliedKernelPolicy*,
     results::kernel_report::Family,const platform_linux::benchmark_run_input::FileOperations&)
     -> std::expected<KernelSelection,KernelInputError>;

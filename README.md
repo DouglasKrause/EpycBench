@@ -4,15 +4,14 @@ EpycBench is a Linux C++23 command-line framework for AMD EPYC topology discover
 explicit CPU and NUMA memory placement, memory bandwidth and dependent-load
 latency measurements, and raw statistical results.
 
-This source distribution contains the application, build files, Kernel object
-audit tools, one editable Scenario and user documentation. The development test
+This source distribution contains the application, build files, an automatic
+kernel checker, one editable Scenario and user documentation. The development test
 suite, internal project history and private qualification data are excluded.
 Building this distribution creates a new source/compiler configuration; it does
 not inherit another machine's qualification or performance conclusions.
 
 The packaged workflows are topology inspection, Scenario resolution, benchmark
-execution after Kernel approval, Results validation/export, and offline Kernel
-qualification. Controlled host campaign and source-qualification entry points
+execution and Results validation/export. Controlled host campaign entry points
 require separate operational tools, configuration, history and qualification
 inputs; those workflows are outside this distribution.
 
@@ -35,6 +34,23 @@ Use `release-clang` for the Clang build. Canonical release presets avoid
 revision and a dirty source state; a Git checkout records its actual revision
 and status. Preserve the generated version information with your results.
 
+## Start menu and demo
+
+Run `./build/release/epycbench` without arguments to choose **1) Help**, **2) Demo test run**, or
+**3) Exit**. Help and the demo return to the menu; end-of-input also exits.
+
+The built-in demo uses fixed settings: worker CPU 0, service CPU 15 on a separate
+core, and memory nodes 0 and 1. It runs a 64 MiB bandwidth comparison and an 8 MiB
+latency comparison, each with four blocks and 100 ms target observations. These
+resources must be available; the program does not choose substitutes. Setup,
+calibration and warmup add to the measured work, so this is not a wall-time limit.
+
+Results are saved in the private `epycbench-demo-results` folder in the current
+working directory, with journals in its `epycbench` subfolder. The demo creates
+these directories as needed and needs no Scenario file or XDG directory setup.
+Normal placement, monitoring and result checks still apply. The small preset is
+for demonstration, not a hardware qualification.
+
 ## Inspect topology and resolve a Scenario
 
 ```sh
@@ -54,15 +70,15 @@ example is an editable value, not an assertion about your topology. A local/remo
 comparison requires a suitable second memory node; no fixed remote penalty is
 assumed. Resolution performs no benchmark and does not establish host readiness.
 
-## Qualify the Kernel before benchmarking
+## Run a benchmark
 
-The default build deliberately has no admitted Kernel evidence. `run` refuses
-measurement until genuine compiler-matched object reports and semantic approval
-manifests are supplied through the configure-time evidence settings. Follow
-[Kernel qualification](docs/QUALIFICATION.md) for the actual review and required
-layout. A directory path or a generated pending report alone is insufficient.
+The build automatically checks the compiled measurement routines for obvious
+failures to perform their intended memory work. No assembly review, approval files
+or second compiler are required. Ordinary compiler variations are accepted;
+uncertain inspection results are reported without blocking the build. See
+[automatic kernel checks](docs/QUALIFICATION.md) for the report and its limits.
 
-After configuring and validating your approved evidence, run the edited Scenario:
+Run the edited Scenario:
 
 ```sh
 ./build/release/epycbench run examples/local-remote-read.yaml

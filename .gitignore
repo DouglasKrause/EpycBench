@@ -2,3 +2,6 @@
 /.local/
 __pycache__/
 *.py[cod]
+
+# Private results from the built-in demo
+epycbench-demo-results/

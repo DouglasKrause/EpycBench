@@ -180,7 +180,6 @@ void build_facts(PlanFacts& out,const Json& value,const normalization_serializat
             require(work.equal(retained->manifest()->implementation_id,kernel::kernel_implementation_id_token(implementations[f])),Error::association);
             out.approvals[f].emplace(std::move(*retained));
         }
-        require(!bindings[f]||out.approvals[f].has_value(),Error::association);
         require(row.at("compiler_slots").is_array()&&row.at("compiler_slots").size()==2U,Error::schema);
         for(std::size_t slot{};slot<2U;++slot){
             work.debit(1U);std::array<association::Match,7> comparisons;comparisons.fill(association::Match::not_available);
@@ -257,7 +256,7 @@ void semantic_facts(PlanFacts& out,const Json& value,const normalization_seriali
     expected["build_manifest_digest"]=out.base->manifest()->digest()->value().to_hex();
     for(const auto key:{"implementation_evidence","implementations","pairs"})expected[key]=Json::array();
     expected["monitoring_presence"]=counts.monitoring_present?"supplied":"not_supplied";
-    auto& policy=expected["policy"];policy["build_evidence"]="supplied-manifest-and-bound-family-objects";
+    auto& policy=expected["policy"];policy["build_evidence"]=out.bindings.empty()||out.approvals[0]||out.approvals[1]?"supplied-manifest-and-bound-family-objects":"build-manifest";
     policy["current_qualification"]="not_asserted";policy["production_admission"]="deferred";policy["schedule"]="measurement-four-slot-v1";
     auto& repeat=expected["repetition"];repeat["actual_completed"]="unknown";repeat["maximum_blocks"]=std::to_string(counts.maximum_blocks);
     repeat["maximum_measured_observations"]=ceiling->two_to_64?"18446744073709551616":std::to_string(ceiling->low);
@@ -271,8 +270,8 @@ void semantic_facts(PlanFacts& out,const Json& value,const normalization_seriali
     std::array<bool,2> used{};
     for(const auto& binding:out.bindings){work.debit(1U);used[family(out.workloads[binding.workload_index])]=true;}
     for(std::size_t f{};f<2U;++f){
-        if(!used[f])continue;
-        require(out.approvals[f]&&out.approvals[f]->manifest(),Error::association);
+        if(!used[f]||!out.approvals[f])continue;
+        require(out.approvals[f]->manifest(),Error::association);
         const auto& manifest=*out.approvals[f]->manifest();
         core::detail::append_object_json(expected["implementation_evidence"],[&](Json& row){
             row["framework_version"]=hex(manifest.framework_version,work);

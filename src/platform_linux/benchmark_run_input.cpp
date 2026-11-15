@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
@@ -257,6 +258,51 @@ auto read_authored(std::string_view path,FileOperations operations) -> TextRead 
     Descriptor parent{fd,operations,result.outcome};
     result=read_from_directory(fd,leaf,16U*mib,false,operations);
     parent.close();return result;
+}
+auto prepare_demo_directory() -> TextRead {
+    TextRead result;
+    try {
+        std::array<char,4096> current{};
+        if(!::getcwd(current.data(),current.size())) {
+            fail(result.outcome,failure(Stage::open,errno));return result;
+        }
+        const std::string_view directory{current.data()};
+        constexpr std::string_view leaf="epycbench-demo-results";
+        if(!valid_absolute(directory)||directory.size()+1+leaf.size()+10>4095) {
+            fail(result.outcome,failure(Stage::admission,ENAMETOOLONG));return result;
+        }
+        result.bytes=directory;
+        if(result.bytes.back()!='/')result.bytes+='/';
+        result.bytes+=leaf;
+
+        const auto operations=native_file_operations();
+        const auto fd=open_directory(directory,0,operations,result.outcome);
+        if(fd<0)return result;
+        Descriptor parent{fd,operations,result.outcome};
+        const auto create_child=[&](int parent_fd,const char* name) -> int {
+            if(::mkdirat(parent_fd,name,0700)!=0&&errno!=EEXIST) {
+                fail(result.outcome,failure(Stage::open,errno));return -1;
+            }
+            const auto child_fd=operations.files.open_at(operations.files.context,parent_fd,name,
+                O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+            if(child_fd<0) {
+                fail(result.outcome,failure(Stage::open,errno));return -1;
+            }
+            Descriptor child{child_fd,operations,result.outcome};
+            if(!stat_identity(child_fd,true,true,operations,result.outcome)) {
+                child.close();return -1;
+            }
+            return child.release();
+        };
+        Descriptor output{create_child(parent.get(),leaf.data()),operations,result.outcome};
+        if(output.get()>=0) {
+            Descriptor journal{create_child(output.get(),"epycbench"),operations,result.outcome};
+            journal.close();
+        }
+        output.close();
+        parent.close();
+    } catch(...) { fail(result.outcome,failure(Stage::admission)); }
+    return result;
 }
 auto read_source(SourceFile source,std::uint32_t cpu,FileOperations operations,ObservationTime time) -> TextRead {
     if(!time.record) { TextRead result;fail(result.outcome,failure(Stage::admission));return result; }

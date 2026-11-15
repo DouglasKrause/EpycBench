@@ -1,22 +1,22 @@
 {
   "files": [
     {
-      "bytes": 40,
+      "bytes": 106,
       "mode": "0644",
       "path": ".gitignore",
-      "sha256": "af46cf653c1077d22cab02fd397cfd5f460db7cc4d7059dcffcb5e901496006f"
+      "sha256": "553ce6723a8663678c21a6194a2b555e9cf214fafe6d8514f4450542f486d453"
     },
     {
-      "bytes": 431646,
+      "bytes": 428965,
       "mode": "0644",
       "path": "CMakeLists.txt",
-      "sha256": "1f8c1b5f6dd2452f1085a18aba806c4793fce6fff1e1ca9ed0f5ced4f6497c4b"
+      "sha256": "39a5c721c342dcc4e3d65d693f3f3f8b9d7cc178e4f1385eb2729e1b1618cd7d"
     },
     {
-      "bytes": 1152,
+      "bytes": 1034,
       "mode": "0644",
       "path": "CMakePresets.json",
-      "sha256": "31189561bedbde92e67b8fe01680bacdba322aefc6125a23e5ed57a4b8e1ae51"
+      "sha256": "ef1f84bad066d0d7d799a84d7738dfee774d54984a1695e2d8e36958e4d7db56"
     },
     {
       "bytes": 1071,
@@ -25,10 +25,10 @@
       "sha256": "e1c7c0e4bf745f717465187a6ede82942f081fb51ef909836cfadab776e5d85f"
     },
     {
-      "bytes": 4883,
+      "bytes": 5698,
       "mode": "0644",
       "path": "README.md",
-      "sha256": "92d037f8e1dbd83ebd14cb51f5cf91e75aabc75771c85e0c733bd6fc92aa08fa"
+      "sha256": "171653328d3c3a7f6bcb8f2a0eb844cbab6c6382b80d868f828088cfdf2c7e2b"
     },
     {
       "bytes": 2376,
@@ -79,10 +79,10 @@
       "sha256": "b75dd82b6e0aa0635d528a03555cb0ee334bae289610f4c9f0c5d1aa7c9a708e"
     },
     {
-      "bytes": 12467,
+      "bytes": 1783,
       "mode": "0644",
       "path": "docs/QUALIFICATION.md",
-      "sha256": "ff234f7ed13275c13dfe9ed011ed5effb437c3fc63eafb99dc80cb822467d199"
+      "sha256": "ab7b0aaed996af5761f569caffabe310d1a5348220b69bc3ae0c9fb9e0d1984c"
     },
     {
       "bytes": 1698,
@@ -913,22 +913,16 @@
       "sha256": "a74444121d50dca0c90f27e893133b7a34625627d0eec2c0964d867e924c2381"
     },
     {
-      "bytes": 21727,
-      "mode": "0644",
-      "path": "schemas/kernel-object-qualification-approval-v1.schema.json",
-      "sha256": "d33684c2e2e82a3ddae855056d0ba9ec3880313a57dc5497ceaac1c0cfab71f4"
-    },
-    {
       "bytes": 1946,
       "mode": "0644",
       "path": "src/build_manifest.cpp",
       "sha256": "49c535423d66b6a36661b0f0c0ff5804e36a10179fe5cc4221204465d5ccd573"
     },
     {
-      "bytes": 2254,
+      "bytes": 3197,
       "mode": "0644",
       "path": "src/cli/application.cpp",
-      "sha256": "9d3435ad206f4254265453f46e9f583655add0263395edc1432fc0d245069ac9"
+      "sha256": "9bb8fdf2e4b8a203715b9cd8b504bf6b9412d08bb5581271a64337c7082c81e1"
     },
     {
       "bytes": 462,
@@ -937,16 +931,16 @@
       "sha256": "86ccd313beaeb58e2584c92e64e6bd8d03e64d08356b9dcb4854681484d244b5"
     },
     {
-      "bytes": 107188,
+      "bytes": 107998,
       "mode": "0644",
       "path": "src/cli/benchmark_run_command.cpp",
-      "sha256": "2b6d6a1e4a17e15fc470f2acf9dc2d7c8d4192f6e0e0aae07cfdb45bcacf7a4f"
+      "sha256": "492e9c7d0d6b77ec27db2ccfb47724430470d42894c39ee70d6bd893f8f6220c"
     },
     {
-      "bytes": 11190,
+      "bytes": 11193,
       "mode": "0644",
       "path": "src/cli/benchmark_run_command.hpp",
-      "sha256": "472a3a3a7008811d459ec735361115d92ff7ecba827cbe76d164e54b4690508c"
+      "sha256": "b98933e52ba3e9db1cb23effea041610b7a67a5c0524c04fc88ba3df06e2708f"
     },
     {
       "bytes": 57165,
@@ -959,6 +953,12 @@
       "mode": "0644",
       "path": "src/cli/benchmark_run_composition.hpp",
       "sha256": "0bc38561765e196cd7e022926c26cbe01310e44d5af0b07d12af35b972d09fe5"
+    },
+    {
+      "bytes": 2667,
+      "mode": "0644",
+      "path": "src/cli/demo_scenario.hpp",
+      "sha256": "c621b4c8b42c953167affae2186e90e9d066126cd7e0bb781f93e7a653662fc2"
     },
     {
       "bytes": 22813,
@@ -1073,6 +1073,18 @@
       "mode": "0644",
       "path": "src/cli/scenario_command.hpp",
       "sha256": "f1d267d173aad1da62c36cdf351567ba2a3953ae39ef4daaebe6569511c540e0"
+    },
+    {
+      "bytes": 1598,
+      "mode": "0644",
+      "path": "src/cli/terminal_menu.cpp",
+      "sha256": "73d636e5d35dcc80dfeb8fb6f68bac24332118079a1a865c8727efc166ea4a0f"
+    },
+    {
+      "bytes": 387,
+      "mode": "0644",
+      "path": "src/cli/terminal_menu.hpp",
+      "sha256": "da19ea20556855e4b3ce99b06c35c549567a42b9384a9d2fcf2b0b2680c046fd"
     },
     {
       "bytes": 17779,
@@ -3163,16 +3175,16 @@
       "sha256": "41f8cbdc8cc16b53e98a28b5dd8dacdba645112b2ca8d5bca9983dd02b33ddf2"
     },
     {
-      "bytes": 34739,
+      "bytes": 36810,
       "mode": "0644",
       "path": "src/platform_linux/benchmark_run_input.cpp",
-      "sha256": "55f59aeb105949ba73c1730f3e563662403ca907f6f9352c9bb5ba3a12f70114"
+      "sha256": "8ac7bd5f00a2d5f6cd8465634f82a4dbaecac2e154bb97604da31f14553f69a0"
     },
     {
-      "bytes": 5653,
+      "bytes": 5867,
       "mode": "0644",
       "path": "src/platform_linux/benchmark_run_input.hpp",
-      "sha256": "72f1529315cf8d43bb7e6710d504f36906e247d2c712bd44b28387ca5233fbc8"
+      "sha256": "4f32050de4eec32675ab70ac57299a299a16ebf1310b33c6d1d09f37adad6fae"
     },
     {
       "bytes": 7144,
@@ -3733,10 +3745,10 @@
       "sha256": "d4aa71412d121fa39635da6e857d40a199390a5ea1f4c3f637527329dec67bc0"
     },
     {
-      "bytes": 52750,
+      "bytes": 52745,
       "mode": "0644",
       "path": "src/results/incremental_event_preparation.cpp",
-      "sha256": "747e98157c6cca4270cec1eaaca0ccc28105608ddb720c4e1221a80717391845"
+      "sha256": "a4516ff64667e63fb66ebf3d5d536d5856bc3cc364ec54f77601a98b3389f4c7"
     },
     {
       "bytes": 2182,
@@ -4027,10 +4039,10 @@
       "sha256": "2040b85d540916e6cc4b1d1c6e0292f1db377eacd3135e95f6faf65592f3dcd9"
     },
     {
-      "bytes": 37829,
+      "bytes": 37992,
       "mode": "0644",
       "path": "src/results/private_execution_plan.cpp",
-      "sha256": "a5c625f5ff59ad8b54361497ff8dbb6680a44c029277d5e1161c47699d53a81d"
+      "sha256": "1abf2e3d62123c89caf757dd10bdf7b1740c3a8a72de27b7cfe9e65dc0293319"
     },
     {
       "bytes": 4344,
@@ -5893,10 +5905,10 @@
       "sha256": "130c115c0728c42b5e3698d5365c15821abf49099f2805117f13fc1ff0a30586"
     },
     {
-      "bytes": 366,
+      "bytes": 9021,
       "mode": "0644",
-      "path": "tools/audit-kernel-object-code.py",
-      "sha256": "f779a19ef41d93d9e9611e4c4bc802f956b7aef031d11f679069151c4343218c"
+      "path": "tools/check-kernel-code.py",
+      "sha256": "b4ba001a206992b58ba9b778d455ae2c80e7dfa0ecd64b4ae75eae0bde5f20e2"
     },
     {
       "bytes": 179,
@@ -5905,82 +5917,10 @@
       "sha256": "1748e5f58263b042bcfcb03430e04eb6f5ae56fa7bd90a236bc94c9c1e03bfb5"
     },
     {
-      "bytes": 26959,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/kernel_object_audit/bandwidth_policy.py",
-      "sha256": "cfec47252caf7445e77f19ab9a837a2c6207762b05d2c8fd5d39f0eeafc6ed00"
-    },
-    {
       "bytes": 42205,
       "mode": "0644",
       "path": "tools/kernel-object-audit/kernel_object_audit/framework.py",
       "sha256": "3bffc9b1a754d7b4889a6271459fc6c40b4155dc900a7e6b5ed52ca6bb02160f"
-    },
-    {
-      "bytes": 187,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/kernel_object_audit/latency_integration.py",
-      "sha256": "d096020cbf5e512c2d39242de38774ea570b4d67fb06825441ae93ef5c308ac9"
-    },
-    {
-      "bytes": 15700,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/kernel_object_audit/latency_policy.py",
-      "sha256": "8ea14c087f73172f1c9a3b370c76e65c78bb246712f1412439aa3260bf7c8352"
-    },
-    {
-      "bytes": 3571,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/kernel_object_audit/policies.py",
-      "sha256": "94e14eec13ef035b0e55bc3d37a793480e3eb4440318331f9b068fbbf3f72074"
-    },
-    {
-      "bytes": 740,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/kernel_object_audit/release_integration.py",
-      "sha256": "5b520ea33076cd05b4377aebb50e55afb36f6411fe9093024a82320e37bea2a6"
-    },
-    {
-      "bytes": 1738,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/policies/bandwidth-v1.json",
-      "sha256": "3cb10914496cc5453f907cb4f1335393aeaf48c4181c000d158545b9164927a8"
-    },
-    {
-      "bytes": 1512,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/policies/latency-v1.json",
-      "sha256": "53516a666f983fa5482072d86931f6d5af58c8721356a41ea862246b0fe00749"
-    },
-    {
-      "bytes": 1839,
-      "mode": "0644",
-      "path": "tools/kernel-object-audit/schemas/report-v1.schema.json",
-      "sha256": "28c634ae01ee7f6dabd369f9bce8c97f33d9d9463505bdf4dd09ee1064e8c9a0"
-    },
-    {
-      "bytes": 6432,
-      "mode": "0644",
-      "path": "tools/prepare-kernel-evidence.py",
-      "sha256": "45a41944cc8ce216c7b0d85c90066289e1eb034a51b745b045c4e5da132b5430"
-    },
-    {
-      "bytes": 1404,
-      "mode": "0644",
-      "path": "tools/run-bandwidth-object-audit.py",
-      "sha256": "d31307cf8ef713d6d5e6dec2313bc7b4e44e51d94e246bb28e7c2902c19a4ee4"
-    },
-    {
-      "bytes": 1405,
-      "mode": "0644",
-      "path": "tools/run-latency-object-audit.py",
-      "sha256": "d7601eece1443664ce81882a76b397d093c1caf3c9ae19516238dff6e31578b3"
-    },
-    {
-      "bytes": 9656,
-      "mode": "0644",
-      "path": "tools/verify-kernel-retention.py",
-      "sha256": "de09c13e9d484ac7bbf957ed2d93ece1f9b40804094807f906399790f3de76a4"
     }
   ],
   "schema": "epycbench.public-source-manifest/v1"

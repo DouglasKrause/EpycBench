@@ -40,6 +40,9 @@ struct FileOperations {
 // Authored input alone permits a caller-selected relative/absolute path. It
 // shares the bounded reader and never adopts the historical private-file policy.
 [[nodiscard]] auto read_authored(std::string_view path,FileOperations) -> TextRead;
+// Demo-only output setup: private cwd/epycbench-demo-results and its journal
+// child. Existing directories must already be private and owned by this user.
+[[nodiscard]] auto prepare_demo_directory() -> TextRead;
 struct ThpSizeRow { std::uint64_t bytes{};bool attempted{};TextRead enabled; };
 struct ThpInventory {
     std::vector<ThpSizeRow> rows;

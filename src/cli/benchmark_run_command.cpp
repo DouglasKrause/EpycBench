@@ -1,5 +1,6 @@
 #include "cli/benchmark_run_command.hpp"
 #include "cli/results_command.hpp"
+#include "cli/demo_scenario.hpp"
 #include "results/incremental_event_pair.hpp"
 #include "epycbench/build_info_generated.hpp"
 #include "runtime/scenario_monitoring_policy_projection.hpp"
@@ -12,19 +13,6 @@
 #include <ostream>
 #include "epycbench/topology/serialization.hpp"
 
-#ifndef EPYCBENCH_KERNEL_EVIDENCE_ROOT
-#define EPYCBENCH_KERNEL_EVIDENCE_ROOT ""
-#endif
-#ifndef EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256
-#define EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256 "a3b7a9933a70d65a3d5ca95ab3c7db2c69f4be04262e03717027db378cab7725"
-#endif
-#ifndef EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256
-#define EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256 "865b713a6f54ba297af1871b3f814b7bd3fde89c78df8aa5090619b2efce0729"
-#endif
-#ifndef EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE
-#define EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE "independent_agents"
-#endif
-
 namespace epycbench::cli::benchmark_run_command {
 namespace {
 struct Cancelled {};
@@ -33,7 +21,8 @@ auto cancellation_requested(platform_linux::detail::ControllerSignalScope* scope
 }
 }
 
-auto run(int argc,char* argv[],runtime::ControllerProcessProductionAuthority& authority,
+namespace {
+auto run_prepared(const Arguments& arguments,runtime::ControllerProcessProductionAuthority& authority,
     std::ostream& output,std::ostream& errors) noexcept -> int {
     namespace native=platform_linux::detail;
     namespace composition=benchmark_run_composition;
@@ -42,16 +31,6 @@ auto run(int argc,char* argv[],runtime::ControllerProcessProductionAuthority& au
         try {errors.write(message.data(),static_cast<std::streamsize>(message.size()));}catch(...){}
         return code;
     };
-    if(argc<2||argc>6||!argv)return diagnostic(2);
-    std::array<std::string_view,4> words{};
-    for(int i=2;i<argc;++i) {if(!argv[i])return diagnostic(2);words[static_cast<std::size_t>(i-2)]=argv[i];}
-    auto arguments=parse_arguments(std::span{words}.first(static_cast<std::size_t>(argc-2)));
-    if(!arguments)return diagnostic(2);
-    if(arguments->help) {
-        constexpr std::string_view help="Usage: epycbench run [--format yaml|json] SCENARIO\n";
-        try {output.write(help.data(),static_cast<std::streamsize>(help.size()));return output?0:3;}
-        catch(...){return 3;}
-    }
     native::ControllerSignalScope signals;
     std::optional<native::CurrentProcessImage> image;
     bool delegated{};
@@ -108,14 +87,82 @@ auto run(int argc,char* argv[],runtime::ControllerProcessProductionAuthority& au
             native::production_bounded_sysfs_operations(),native::production_bounded_sysfs_operations(),nullptr,host.clock};
         CommandDependencies dependencies{DependencyMode::native,nullptr,host,checks,{nullptr,observed},
             {{},controller,{nullptr,observed,runtime::detail::progress::Utc::acquired},{}}};
-        const char* environment=std::getenv("XDG_RUNTIME_DIR");
-        std::size_t length{};if(environment)while(length<=4095&&environment[length])++length;
-        if(!environment||!length||length>4095){retire();return diagnostic(9);}
+        std::string demo_directory;
+        std::string_view journal_prefix;
+        if(arguments.demo) {
+            auto directory=platform_linux::benchmark_run_input::prepare_demo_directory();
+            if(!directory.outcome.succeeded()) {
+                errors << "Could not prepare the private epycbench-demo-results directory.\n";
+                retire();return diagnostic(9);
+            }
+            demo_directory=std::move(directory.bytes);
+            journal_prefix=demo_directory;
+            output << "Demo results: " << demo_directory << '\n';
+            if(!output){retire();return diagnostic(3);}
+        } else {
+            const char* environment=std::getenv("XDG_RUNTIME_DIR");
+            std::size_t length{};if(environment)while(length<=4095&&environment[length])++length;
+            if(!environment||!length||length>4095){retire();return diagnostic(9);}
+            journal_prefix={environment,length};
+        }
         delegated=true;
-        auto report=execute(*arguments,*context,authority,*identity,signals,*image,{environment,length},
+        auto report=execute(arguments,*context,authority,*identity,signals,*image,journal_prefix,
             std::move(*bounds),std::move(dependencies));
         return composition::write_summary(report,output,errors);
     }catch(...){if(!delegated)retire();return diagnostic(1);}
+}
+
+} // namespace
+
+auto run(int argc,char* argv[],runtime::ControllerProcessProductionAuthority& authority,
+    std::ostream& output,std::ostream& errors) noexcept -> int {
+    const auto diagnostic=[&](int code) noexcept {
+        constexpr std::string_view message="epycbench run: failed\n";
+        try {errors.write(message.data(),static_cast<std::streamsize>(message.size()));}catch(...){}
+        return code;
+    };
+    if(argc<2||argc>6||!argv)return diagnostic(2);
+    std::array<std::string_view,4> words{};
+    for(int i=2;i<argc;++i) {if(!argv[i])return diagnostic(2);words[static_cast<std::size_t>(i-2)]=argv[i];}
+    auto arguments=parse_arguments(std::span{words}.first(static_cast<std::size_t>(argc-2)));
+    if(!arguments)return diagnostic(2);
+    if(arguments->help) {
+        constexpr std::string_view help="Usage: epycbench run [--format yaml|json] SCENARIO\n";
+        try {output.write(help.data(),static_cast<std::streamsize>(help.size()));return output?0:3;}
+        catch(...){return 3;}
+    }
+    return run_prepared(*arguments,authority,output,errors);
+}
+
+auto run_demo(runtime::ControllerProcessProductionAuthority& authority,
+    std::ostream& output,std::ostream& errors) noexcept -> int {
+    try {
+        output << "\nFixed demo: CPU 0 worker, CPU 15 service, NUMA nodes 0 and 1.\n"
+                  "Bandwidth: 64 MiB; latency: 8 MiB; four blocks per comparison.\n"
+                  "Both memory nodes and both CPUs must be available.\n";
+        if(!output)return 3;
+        const auto status=run_prepared(demo_arguments(),authority,output,errors);
+        if(status==6)errors << "The fixed demo could not resolve on this machine. "
+            "It requires CPU 0, a separate service core at CPU 15, and NUMA nodes 0 and 1.\n";
+        return status;
+    } catch(...) {return 1;}
+}
+
+auto read_scenario(const Arguments& arguments,
+    platform_linux::benchmark_run_input::FileOperations files,std::string_view demo_directory)
+    -> platform_linux::benchmark_run_input::TextRead {
+    namespace input=platform_linux::benchmark_run_input;
+    if(!arguments.demo)return input::read_authored(arguments.scenario_path,files);
+    input::TextRead result;
+    if(demo_directory.empty()) {
+        result.outcome.primary=input::Failure{input::Stage::admission,0,{}};
+        return result;
+    }
+    result.bytes=demo_scenario::source;
+    result.bytes.append("\noutput:\n  directory: ");
+    result.bytes.append(nlohmann::json(std::string(demo_directory)).dump());
+    result.bytes.append("\n  format: json\n");
+    return result;
 }
 
 auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
@@ -173,7 +220,7 @@ auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
            !dependencies.host.files.effective_uid||!host_calls.affinity||!host_calls.set_affinity||!host_calls.cpuid_leaf1_eax||
            !host_calls.kernel_identity||!host_calls.process_thp||
            (dependencies.mode==DependencyMode::native&&dependencies.kernel)||
-           (dependencies.mode==DependencyMode::supplied&&(!dependencies.kernel||!dependencies.run.final_identity)))
+           (dependencies.mode==DependencyMode::supplied&&!dependencies.run.final_identity))
             throw composition::Error::source;
         auto valid=signals.validate();
         if(!valid||!image.active())throw composition::Error::identity;
@@ -188,7 +235,7 @@ auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
         if(!parsed_run||!start)throw composition::Error::identity;
         run=std::move(*parsed_run);
         checkpoint();
-        auto source_read=platform_linux::benchmark_run_input::read_authored(arguments.scenario_path,dependencies.host.files);
+        auto source_read=read_scenario(arguments,dependencies.host.files,arguments.demo?xdg:std::string_view{});
         if(!source_read.outcome.succeeded()){fail(3,composition::Error::source);retire();return report;}
         checkpoint();
         const auto input_ceiling=producer_input_limit();if(!input_ceiling)throw composition::Error::capacity;
@@ -281,7 +328,9 @@ auto execute(const Arguments& arguments,const runtime::RunnerContext& context,
         }
         std::size_t kernel_bytes{};
         results::build_object_association::ApprovalInputs approvals;
-        for(std::size_t i{};i<used.size();++i)if(used[i]) {
+        // Normal builds have already run the automatic kernel checks. Historical
+        // evidence is accepted only through the supplied compatibility fixture path.
+        for(std::size_t i{};i<used.size();++i)if(used[i]&&dependencies.kernel) {
             checkpoint();
             const auto family=i==0?results::kernel_report::Family::bandwidth:results::kernel_report::Family::latency;
             if(!acquire_kernel_evidence(*observer,time(),evidence[i],dependencies.mode,dependencies.kernel,family,
@@ -847,22 +896,6 @@ auto evidence_root_valid(std::string_view root) noexcept -> bool {
     return root=="/";
 }
 }
-auto parse_kernel_review_policy(std::array<std::string_view,2> digests,std::string_view route)
-    -> std::expected<KernelReviewPolicy,KernelInputError> {
-    using Route=results::kernel_approval::ReviewRoute;
-    if(route!="independent_agents"&&route!="human_approval")
-        return std::unexpected{KernelInputError::admission};
-    const auto bandwidth=core::Sha256Digest::parse(digests[0]);
-    if(!bandwidth)return std::unexpected{KernelInputError::admission};
-    const auto latency=core::Sha256Digest::parse(digests[1]);
-    if(!latency)return std::unexpected{KernelInputError::admission};
-    return KernelReviewPolicy{{*bandwidth,*latency},route=="independent_agents"
-        ?Route::independent_agents:Route::human_approval};
-}
-auto configured_kernel_review_policy() -> std::expected<KernelReviewPolicy,KernelInputError> {
-    return parse_kernel_review_policy({EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256,
-        EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256},EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE);
-}
 auto select_kernel_evidence(DependencyMode mode,const SuppliedKernelPolicy* supplied,
     results::kernel_report::Family family,const platform_linux::benchmark_run_input::FileOperations& operations)
     -> std::expected<KernelSelection,KernelInputError> {
@@ -875,20 +908,15 @@ auto select_kernel_evidence(DependencyMode mode,const SuppliedKernelPolicy* supp
     case results::kernel_report::Family::latency:index=1;break;
     default:return std::unexpected{KernelInputError::admission};
     }
-    if((mode!=DependencyMode::native&&mode!=DependencyMode::supplied)||
-       (mode==DependencyMode::supplied)!=(supplied!=nullptr))
+    if(mode!=DependencyMode::supplied||!supplied)
         return std::unexpected{KernelInputError::admission};
-    const std::string_view root=supplied?supplied->root:EPYCBENCH_KERNEL_EVIDENCE_ROOT;
-    if(root.empty()&&mode==DependencyMode::native)return std::unexpected{KernelInputError::unconfigured};
+    const std::string_view root=supplied->root;
     if(!evidence_root_valid(root))return std::unexpected{KernelInputError::admission};
     using Route=results::kernel_approval::ReviewRoute;
-    const auto configured=supplied?std::expected<KernelReviewPolicy,KernelInputError>{
-        KernelReviewPolicy{supplied->approval_digests,supplied->review_route}}:configured_kernel_review_policy();
-    if(!configured)return std::unexpected{configured.error()};
-    const auto route=configured->review_route;
+    const auto route=supplied->review_route;
     if(route!=Route::human_approval&&route!=Route::independent_agents)
         return std::unexpected{KernelInputError::admission};
-    const auto expected=configured->approval_digests[index];
+    const auto expected=supplied->approval_digests[index];
     KernelSelection selected{root,{},expected,mode,route};
     constexpr std::string_view hex="0123456789abcdef";
     for(std::size_t i=0;i<expected.bytes().size();++i) {

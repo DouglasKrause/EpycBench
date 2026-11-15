@@ -1565,6 +1565,12 @@ endif()
 
 if(BUILD_TESTING)
 
+    add_test(NAME EB-KRN.basic-code-check
+        COMMAND "${Python3_EXECUTABLE}" -I -B
+                "${PROJECT_SOURCE_DIR}/tests/tools/basic_kernel_code_test.py")
+    set_tests_properties(EB-KRN.basic-code-check
+        PROPERTIES LABELS "kernel;synthetic;tooling;non-hardware")
+
     add_test(NAME EB-PUB-001.source-export
         COMMAND "${Python3_EXECUTABLE}" -I -B
                 "${PROJECT_SOURCE_DIR}/tests/tools/public_source_export_test.py")
@@ -1701,58 +1707,6 @@ if(BUILD_TESTING)
         EB-KRN-BW-006.object-code-policy-synthetic
         PROPERTIES LABELS "synthetic;tooling;kernel;non-hardware"
     )
-
-    if(EPYCBENCH_BUILD_PRESET STREQUAL "release" OR EPYCBENCH_BUILD_PRESET STREQUAL "release-clang")
-        if(EPYCBENCH_BUILD_PRESET STREQUAL "release")
-            set(EPYCBENCH_LATENCY_AUDIT_COMPILER_FAMILY GCC)
-            set(EPYCBENCH_BANDWIDTH_AUDIT_COMPILER_FAMILY GCC)
-        else()
-            set(EPYCBENCH_LATENCY_AUDIT_COMPILER_FAMILY Clang)
-            set(EPYCBENCH_BANDWIDTH_AUDIT_COMPILER_FAMILY Clang)
-        endif()
-        add_test(
-            NAME EB-KRN-LAT-007.object-code-audit
-            COMMAND
-                "${Python3_EXECUTABLE}"
-                "${PROJECT_SOURCE_DIR}/tools/run-latency-object-audit.py"
-                --source-root "${PROJECT_SOURCE_DIR}"
-                --build-directory "${PROJECT_BINARY_DIR}"
-                --compile-commands "${PROJECT_BINARY_DIR}/compile_commands.json"
-                --timed-source src/kernel/dependent_load_latency_execute.cpp
-                --implementation-id scalar-u64-random-cycle/v1
-                --semantic-symbol "epycbench::kernel::execute_dependent_load_latency(epycbench::kernel::PreparedDependentLoadLatency const&, epycbench::kernel::DependentLoadLatencySchedule)"
-                --compiler-family "${EPYCBENCH_LATENCY_AUDIT_COMPILER_FAMILY}"
-                --qualification-preset "${EPYCBENCH_BUILD_PRESET}"
-                --family-policy "${PROJECT_SOURCE_DIR}/tools/kernel-object-audit/policies/latency-v1.json"
-                --machine-report "${PROJECT_BINARY_DIR}/qualification/EB-KRN-LAT-007/object-code-audit.json"
-                --human-report "${PROJECT_BINARY_DIR}/qualification/EB-KRN-LAT-007/object-code-audit.txt"
-        )
-        set_tests_properties(
-            EB-KRN-LAT-007.object-code-audit
-            PROPERTIES LABELS "release;kernel;object-code;qualification"
-        )
-        add_test(
-            NAME EB-KRN-BW-006.object-code-audit
-            COMMAND
-                "${Python3_EXECUTABLE}"
-                "${PROJECT_SOURCE_DIR}/tools/run-bandwidth-object-audit.py"
-                --source-root "${PROJECT_SOURCE_DIR}"
-                --build-directory "${PROJECT_BINARY_DIR}"
-                --compile-commands "${PROJECT_BINARY_DIR}/compile_commands.json"
-                --timed-source src/kernel/sequential_read_bandwidth_execute.cpp
-                --implementation-id scalar-u64-sequential/v1
-                --semantic-symbol "epycbench::kernel::execute_sequential_read_bandwidth(epycbench::kernel::PreparedSequentialReadBandwidth const&, epycbench::kernel::SequentialReadBandwidthPassCount)"
-                --compiler-family "${EPYCBENCH_BANDWIDTH_AUDIT_COMPILER_FAMILY}"
-                --qualification-preset "${EPYCBENCH_BUILD_PRESET}"
-                --family-policy "${PROJECT_SOURCE_DIR}/tools/kernel-object-audit/policies/bandwidth-v1.json"
-                --machine-report "${PROJECT_BINARY_DIR}/qualification/EB-KRN-BW-006/object-code-audit.json"
-                --human-report "${PROJECT_BINARY_DIR}/qualification/EB-KRN-BW-006/object-code-audit.txt"
-        )
-        set_tests_properties(
-            EB-KRN-BW-006.object-code-audit
-            PROPERTIES LABELS "release;kernel;object-code;qualification"
-        )
-    endif()
 
     add_library(
         epycbench_runtime_test_support
@@ -2883,6 +2837,7 @@ add_library(
     epycbench_cli
     STATIC
         src/cli/application.cpp
+        src/cli/terminal_menu.cpp
         src/cli/results_command.cpp
         src/cli/benchmark_run_command.cpp
         src/cli/monitoring_q0b_command.cpp
@@ -2893,41 +2848,6 @@ add_library(
         src/cli/scenario_command.cpp
 )
 target_compile_features(epycbench_cli PUBLIC cxx_std_23)
-set(EPYCBENCH_KERNEL_EVIDENCE_ROOT "" CACHE STRING
-    "Reviewed Kernel evidence locator; empty leaves acquisition unconfigured")
-set(EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256
-    "a3b7a9933a70d65a3d5ca95ab3c7db2c69f4be04262e03717027db378cab7725" CACHE STRING
-    "Exact reviewed bandwidth Kernel approval manifest SHA-256")
-set(EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256
-    "865b713a6f54ba297af1871b3f814b7bd3fde89c78df8aa5090619b2efce0729" CACHE STRING
-    "Exact reviewed latency Kernel approval manifest SHA-256")
-set(EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE "independent_agents" CACHE STRING
-    "Kernel manifest admission route: independent_agents or human_approval")
-set_property(CACHE EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE PROPERTY STRINGS
-    independent_agents human_approval)
-# This is a code locator only. Configuration performs no evidence reads or copies.
-# Reject compiler-definition delimiters instead of interpreting them as code.
-if(EPYCBENCH_KERNEL_EVIDENCE_ROOT MATCHES "[;\"\\\\\n\r]")
-    message(FATAL_ERROR "Kernel evidence locator contains an unsupported configuration delimiter")
-endif()
-foreach(kernel_evidence_digest IN ITEMS
-        EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256
-        EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256)
-    string(LENGTH "${${kernel_evidence_digest}}" kernel_evidence_digest_length)
-    if(NOT kernel_evidence_digest_length EQUAL 64 OR
-       NOT "${${kernel_evidence_digest}}" MATCHES "^[0-9a-f]+$")
-        message(FATAL_ERROR "${kernel_evidence_digest} must be exactly 64 lowercase hexadecimal digits")
-    endif()
-endforeach()
-if(NOT EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE STREQUAL "independent_agents" AND
-   NOT EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE STREQUAL "human_approval")
-    message(FATAL_ERROR "Kernel evidence review route must be independent_agents or human_approval")
-endif()
-target_compile_definitions(epycbench_cli PRIVATE
-    "EPYCBENCH_KERNEL_EVIDENCE_ROOT=\"${EPYCBENCH_KERNEL_EVIDENCE_ROOT}\""
-    "EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256=\"${EPYCBENCH_KERNEL_EVIDENCE_BANDWIDTH_SHA256}\""
-    "EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256=\"${EPYCBENCH_KERNEL_EVIDENCE_LATENCY_SHA256}\""
-    "EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE=\"${EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE}\"")
 target_include_directories(epycbench_cli PRIVATE "${PROJECT_SOURCE_DIR}/src")
 target_include_directories(epycbench_cli PRIVATE "${PROJECT_BINARY_DIR}/generated/include")
 add_dependencies(epycbench_cli epycbench_build_info)
@@ -2959,6 +2879,19 @@ target_link_libraries(epycbench PRIVATE EpycBench::build_manifest epycbench_cli
     EpycBench::runtime_production_backend epycbench_pairwise_v2_production_entry)
 epycbench_enable_build_options(epycbench)
 epycbench_enable_warnings(epycbench)
+
+# Inspect the actual linked routines automatically. Unknown compiler shapes are
+# reported without blocking; only clear failures of the basic workload fail.
+set_property(TARGET epycbench APPEND PROPERTY LINK_DEPENDS
+    "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
+    "${PROJECT_SOURCE_DIR}/tools/kernel-object-audit/kernel_object_audit/framework.py")
+add_custom_command(TARGET epycbench POST_BUILD
+    COMMAND "${Python3_EXECUTABLE}" -B
+            "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
+            --executable "$<TARGET_FILE:epycbench>"
+            --output "${PROJECT_BINARY_DIR}/kernel-check.json"
+    COMMENT "Checking basic compiled Kernel behavior"
+    VERBATIM)
 
 if(BUILD_TESTING)
     find_program(EPYCBENCH_BASH_EXECUTABLE NAMES bash REQUIRED)
@@ -6186,6 +6119,31 @@ if(BUILD_TESTING)
     epycbench_enable_build_options(epycbench_benchmark_run_cli_tests)
     epycbench_enable_warnings(epycbench_benchmark_run_cli_tests)
     add_test(NAME EB-CLI-001.public-run COMMAND epycbench_benchmark_run_cli_tests)
+
+    add_executable(epycbench_terminal_menu_tests
+        src/cli/terminal_menu.cpp tests/component/terminal_menu_test.cpp)
+    target_compile_features(epycbench_terminal_menu_tests PRIVATE cxx_std_23)
+    target_include_directories(epycbench_terminal_menu_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_terminal_menu_tests PRIVATE Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_terminal_menu_tests)
+    epycbench_enable_warnings(epycbench_terminal_menu_tests)
+    add_test(NAME EB-CLI-001.terminal-menu COMMAND epycbench_terminal_menu_tests)
+
+    add_executable(epycbench_demo_scenario_tests tests/component/demo_scenario_test.cpp)
+    target_include_directories(epycbench_demo_scenario_tests PRIVATE "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_demo_scenario_tests PRIVATE EpycBench::scenario
+        EpycBench::runtime_placement_request_projection EpycBench::runtime_production_backend
+        Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_demo_scenario_tests)
+    epycbench_enable_warnings(epycbench_demo_scenario_tests)
+    add_test(NAME EB-CLI-001.demo-scenario COMMAND epycbench_demo_scenario_tests)
+
+    add_executable(epycbench_demo_directory_tests tests/unit/platform_demo_directory_test.cpp)
+    target_include_directories(epycbench_demo_directory_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_demo_directory_tests PRIVATE EpycBench::platform_linux Catch2::Catch2WithMain)
+    epycbench_enable_build_options(epycbench_demo_directory_tests)
+    epycbench_enable_warnings(epycbench_demo_directory_tests)
+    add_test(NAME EB-CLI-001.demo-directory COMMAND epycbench_demo_directory_tests)
 
     add_executable(epycbench_scenario_public_resolution_limits_tests
         tests/unit/scenario_public_resolution_limits_test.cpp)

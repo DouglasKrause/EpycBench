@@ -74,7 +74,8 @@ void supplied_evidence(std::array<bool,2>& used,const Roots& view,const H& input
     for(Z index=0;index<view.bindings.size();++index){work.debit();work.test(view.bindings[index].workload_index<view.workloads.size(),Error::reference);used[family(view.workloads[view.bindings[index].workload_index],work)]=true;}
     for(Z index=0;index<view.workloads.size();++index){work.debit();(void)family(view.workloads[index],work);}
     for(Z index=0;index<2;++index){work.debit();if(!used[index])continue;
-        const auto* approval=input.approval(index);work.test(approval&&approval->manifest()&&approval->digest(),Error::object_evidence);
+        const auto* approval=input.approval(index);if(!approval)continue;
+        work.test(approval->manifest()&&approval->digest(),Error::object_evidence);
         for(Z slot=0;slot<2;++slot){work.debit();work.test(approval->report(slot)&&!approval->human_bytes(slot).empty(),Error::object_evidence);}
     }
 }
@@ -192,7 +193,7 @@ void endpoint(Sink& out,const Roots& view,const Pair& pair,bool baseline){
 }
 void semantic(Sink& out,const T& state,const Roots& view,const H& child,const std::array<bool,2>& used){
     out.raw("{\"build_manifest_digest\":\"");out.digest(view.manifest->digest()->value());out.raw("\",\"implementation_evidence\":[");bool first=true;
-    for(Z family_index=0;family_index<2;++family_index){out.work.debit();if(!used[family_index])continue;if(!first)out.raw(",");first=false;
+    for(Z family_index=0;family_index<2;++family_index){out.work.debit();if(!used[family_index]||!child.approval(family_index))continue;if(!first)out.raw(",");first=false;
         const auto* manifest=child.approval(family_index)->manifest();
         out.raw("{\"framework_version\":");out.quoted(manifest->framework_version);out.raw(",\"implementation_id\":\"");
         out.raw(family_index==0?"scalar-u64-sequential/v1":"scalar-u64-random-cycle/v1");out.raw("\",\"policy_version\":");out.quoted(manifest->policy_version);
@@ -212,7 +213,9 @@ void semantic(Sink& out,const T& state,const Roots& view,const H& child,const st
         out.raw("\",\"order\":\"");out.raw(*detail::order_token(pair.order));out.raw("\",\"order_seed\":");out.number(pair.order_seed);out.raw(",\"ordinal\":");out.number(pair.ordinal);
         out.raw(",\"workload_index\":");out.number(pair.workload_index);out.raw("}");
     }
-    out.raw("],\"policy\":{\"build_evidence\":\"supplied-manifest-and-bound-family-objects\",\"current_qualification\":\"not_asserted\",\"production_admission\":\"deferred\",\"schedule\":\"measurement-four-slot-v1\"},\"repetition\":{\"actual_completed\":\"unknown\",\"maximum_blocks\":");
+    out.raw("],\"policy\":{\"build_evidence\":\"");
+    out.raw(view.bindings.empty()||child.approval(0)||child.approval(1)?"supplied-manifest-and-bound-family-objects":"build-manifest");
+    out.raw("\",\"current_qualification\":\"not_asserted\",\"production_admission\":\"deferred\",\"schedule\":\"measurement-four-slot-v1\"},\"repetition\":{\"actual_completed\":\"unknown\",\"maximum_blocks\":");
     out.number(state.counts.maximum_blocks);out.raw(",\"maximum_measured_observations\":");out.ceiling(state.counts.maximum_observations);out.raw(",\"maximum_per_variant\":");out.number(state.counts.maximum_per_variant);
     out.raw(",\"minimum_blocks\":");out.number(state.counts.minimum_blocks);out.raw(",\"minimum_valid_per_variant\":");out.number(state.counts.minimum_valid_per_variant);out.raw(",\"stopping_enabled\":");out.flag(state.counts.stopping_enabled);
     out.raw("},\"resolved_plan_digest\":\"");out.digest(view.plan->resolved_digest()->digest());out.raw("\",\"scenario_digest\":\"");out.digest(view.plan->scenario_digest()->digest());
