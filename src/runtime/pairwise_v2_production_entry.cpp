@@ -1,5 +1,6 @@
 #include "runtime/pairwise_v2_production_entry.hpp"
 #include "runtime/controller_lifecycle_policy.hpp"
+#include "runtime/kernel_module_session.hpp"
 
 #include <array>
 #include <cstdio>
@@ -24,6 +25,10 @@ auto native_backend(void*) -> NativePreparedProductionDependencies {
 }
 }
 auto run_stage_b_runner() noexcept -> int {
+    if (const auto modules = initialize_runner_kernel_modules(); !modules) {
+        static_cast<void>(std::fprintf(stderr, "epycbench: %s\n", modules.error().c_str()));
+        return 1;
+    }
     constexpr std::array<std::string_view, 2> arguments{"epycbench", "__runner"};
     const auto result = run_stage_b_runner_with(arguments,
         {{nullptr, native_adopt}, production_runner_context_provider(),

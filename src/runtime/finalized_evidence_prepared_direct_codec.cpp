@@ -2125,13 +2125,15 @@ auto PreparedMeasurementValidityBuilder::build(std::span<const char> body,
         const auto oid = unsigned_inside(body, nodes, ObservationDefinitions::bw_oid, *bw);
         const auto eid = unsigned_inside(body, nodes, ObservationDefinitions::bw_eid, *bw);
         const auto bid = unsigned_inside(body, nodes, ObservationDefinitions::bw_bid, *bw);
-        const auto impl = observation_token(body, nodes, ObservationDefinitions::bw_impl, *bw);
+        const auto implementation_token = observation_token(body, nodes, ObservationDefinitions::bw_impl, *bw);
+        const auto impl = implementation_token ? kernel::parse_kernel_implementation_wire_id(
+            *implementation_token, kernel::KernelFamily::bandwidth) : std::nullopt;
         const auto bytes = unsigned_inside(body, nodes, ObservationDefinitions::bw_bytes, *bw);
         const auto passes = unsigned_inside(body, nodes, ObservationDefinitions::bw_pass, *bw);
         const auto total = unsigned_inside(body, nodes, ObservationDefinitions::bw_total, *bw);
         auto enclosing = observation_interval(body, nodes, *bw);
         const auto* array = parsed_node_inside(nodes, ObservationDefinitions::bw_array, *bw);
-        if (!oid || !eid || !bid || impl != "scalar_u64_sequential_v1" || !bytes || !passes ||
+        if (!oid || !eid || !bid || !impl || !bytes || !passes ||
             !total || !enclosing || !array || array->element_count > bandwidth_.capacity())
             return fail(ActivePipelineFailureKind::typed_factory,
                         ObservationDefinitions::bandwidth);
@@ -2176,7 +2178,7 @@ auto PreparedMeasurementValidityBuilder::build(std::span<const char> body,
         auto value = measurement::SequentialReadBandwidthObservation::create(
             core::ObservationId{*oid}, core::ExperimentId{*eid},
             kernel::DependentLoadLatencyBlockId{*bid},
-            kernel::KernelImplementationId::scalar_u64_sequential_v1, *config, *pass,
+            *impl, *config, *pass,
             std::move(bandwidth_), std::move(*enclosing));
         if (!value || value->aggregate_work().value() != *total)
             return fail(ActivePipelineFailureKind::ledger_validation,
@@ -2186,14 +2188,16 @@ auto PreparedMeasurementValidityBuilder::build(std::span<const char> body,
         const auto oid = unsigned_inside(body, nodes, ObservationDefinitions::lat_oid, *lat);
         const auto eid = unsigned_inside(body, nodes, ObservationDefinitions::lat_eid, *lat);
         const auto bid = unsigned_inside(body, nodes, ObservationDefinitions::lat_bid, *lat);
-        const auto impl = observation_token(body, nodes, ObservationDefinitions::lat_impl, *lat);
+        const auto implementation_token = observation_token(body, nodes, ObservationDefinitions::lat_impl, *lat);
+        const auto impl = implementation_token ? kernel::parse_kernel_implementation_wire_id(
+            *implementation_token, kernel::KernelFamily::latency) : std::nullopt;
         const auto bytes = unsigned_inside(body, nodes, ObservationDefinitions::lat_bytes, *lat);
         const auto total = unsigned_inside(body, nodes, ObservationDefinitions::lat_total, *lat);
         auto enclosing = observation_interval(body, nodes, *lat);
         const auto mode = observation_token(body, nodes, ObservationDefinitions::seed_mode, *lat);
         const auto* option = parsed_node_inside(nodes, ObservationDefinitions::seed_option, *lat);
         const auto* array = parsed_node_inside(nodes, ObservationDefinitions::lat_array, *lat);
-        if (!oid || !eid || !bid || impl != "scalar_u64_random_cycle_v1" || !bytes || !total ||
+        if (!oid || !eid || !bid || !impl || !bytes || !total ||
             !enclosing || !mode || !option || !array || array->element_count > latency_.capacity())
             return fail(ActivePipelineFailureKind::typed_factory, ObservationDefinitions::latency);
         std::optional<kernel::PointerCycleSeedIntent> seed;
@@ -2260,7 +2264,7 @@ auto PreparedMeasurementValidityBuilder::build(std::span<const char> body,
         auto value = measurement::DependentLoadLatencyObservation::create(
             core::ObservationId{*oid}, core::ExperimentId{*eid},
             kernel::DependentLoadLatencyBlockId{*bid},
-            kernel::KernelImplementationId::scalar_u64_random_cycle_v1, *config,
+            *impl, *config,
             std::move(latency_), std::move(*enclosing));
         if (!value || value->aggregate_work().value() != *total)
             return fail(ActivePipelineFailureKind::ledger_validation,

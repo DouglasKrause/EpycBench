@@ -772,7 +772,9 @@ auto write_graph(prepared_codec_v1::PreparedCanonicalWriter& writer,
     out.literal(",\"header\":");
     if (out.good) out.good = bool(prepared_codec_v1::write_progress_policy_fields(writer,
         policies.statistics, policies.monitoring, policies.repetition, policies.comparison));
-    out.literal(",\"implementation\":"); out.number(static_cast<std::uint64_t>(policies.implementation));
+    out.literal(",\"implementation\":");
+    if (const auto legacy = policies.implementation.legacy_index()) out.number(*legacy);
+    else out.text(kernel::kernel_implementation_id_token(policies.implementation));
     out.literal(",\"latency_seed\":"); out.number(policies.latency_seed);
     out.literal(",\"root_seed\":"); out.number(policies.root_seed);
     const auto overhead = policies.validity.maximum_harness_overhead();

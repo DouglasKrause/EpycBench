@@ -412,8 +412,10 @@ auto reconstruct_capacity(const J& raw,const wire::detail::ParsedCapacityOffer& 
     const wire::CapacityParameterCandidate candidate{{workers},{measurement.repetition_maximum_blocks()},{measurement.warmup_maximum()},
         {base},{maximum},{maxnode},*rounds,channels,escaped_bytes,cpu_ids,domain_views,first_pages,first_targets,second_pages,second_targets};
     auto normalized=wire::normalize_capacity_parameters(candidate);require(normalized.has_value(),Error::association);
+    const auto identity_capacity=offer.source_manifest_sha256.to_hex()=="e6faf94e4be36587ba52efc862fb055355ef77209074ba50abd8f21838f264b8"?
+        wire::KernelIdentityCapacity::legacy_builtin_tokens:wire::KernelIdentityCapacity::plugin_tokens;
     auto calculated=wire::calculate_evidence_capacity(*normalized,{limits.size_max,limits.byte_container_max,limits.node_container_max,
-        limits.parser_depth_max,&capacity_consistency_probe});require(calculated.has_value(),Error::capacity);
+        limits.parser_depth_max,&capacity_consistency_probe},identity_capacity);require(calculated.has_value(),Error::capacity);
     require(raw_stock<=limits.retained,Error::capacity);
     // The parser enforces closed grammar; independently reparse the bounded retained
     // body to compare every calculated field and fixed selected identity.
@@ -424,17 +426,20 @@ auto reconstruct_capacity(const J& raw,const wire::detail::ParsedCapacityOffer& 
         reparsed->body_sha256==offer.body_sha256&&reparsed->capacity_body_sha256==offer.capacity_body_sha256&&
         work.equal(reparsed->canonical_capacity_body,offer.canonical_capacity_body),Error::association);
     auto offered=parse_tree(reparsed->canonical_capacity_body,lexical,work);core::detail::JsonCleanup offered_cleanup{offered};
+    const bool legacy_wire=offer.source_manifest_sha256.to_hex()=="e6faf94e4be36587ba52efc862fb055355ef77209074ba50abd8f21838f264b8"&&
+        string(offered.at("wire_registry_sha256"))=="2639a505882a42779853bba12287b7c72ebe56b40c3e96c245a12a8c58fd34d5";
+    const bool plugin_wire=offer.source_manifest_sha256.to_hex()=="2c5cf4461e02b8d8aa3c95a0b3918237bbb7d3af8c6a4c631008de08ea56c09b"&&
+        string(offered.at("wire_registry_sha256"))=="626c6355f54a5f7abea5a67cd6c8db95efd423540291145dc050c976c9038f48";
     require(offer.request_id==request.first_request_id()&&offer.request_body_sha256==request.body_sha256()&&
-        offer.source_manifest_sha256.to_hex()=="e6faf94e4be36587ba52efc862fb055355ef77209074ba50abd8f21838f264b8"&&
+        (legacy_wire||plugin_wire)&&
         offer.projection_context_profile_sha256==core::sha256(wire::detail::capacity_projection_context_profile),Error::identity);
-    require(string(offered.at("wire_registry_sha256"))=="2639a505882a42779853bba12287b7c72ebe56b40c3e96c245a12a8c58fd34d5",Error::identity);
     using Admission=runtime::detail::PairwiseMonitoringHostCapacityAdmissionAccess;
     equal_digest(offered.at("finalized_error_profile_sha256"),Admission::expected_profile_identity(),work);
     equal_digest(offered.at("monitoring_capacity_profile_sha256"),Admission::expected_capacity_identity(),work);
     equal_number(offered.at("numa_domain_maxnode"),maxnode,work);
     const auto& page_inputs=offered.at("request_page_inputs");equal_number(page_inputs.at("worker_count"),workers,work);
     const auto family=request.first().experiment().kernel_id();require(family==request.second().experiment().kernel_id(),Error::association);
-    require(string(page_inputs.at("family"))==(family==kernel::KernelId::sequential_read_bandwidth_v1?"bandwidth":"latency"),Error::association);
+    require(string(page_inputs.at("family"))==(family.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency"),Error::association);
     auto compare_rows=[&](SV name,const auto& expected){const auto& rows=page_inputs.at(name);require(rows.size()==expected.size(),Error::association);
         for(std::size_t i{};i<expected.size();++i)equal_number(rows[i],expected[i].value,work);};
     compare_rows("first_total_pages",first_pages);compare_rows("second_total_pages",second_pages);
@@ -625,6 +630,8 @@ auto PairContextDecoder::decode(SV bytes,const normalization_serialization::Owne
     backing->usage={retained,peak,lexical_shape.text,add(count,target_count)};
     DecodedContext decoded{block_evidence::PairFactsLease{std::move(backing)},std::move(header),std::string{bytes},
         string(value.at("request_body")),*monitoring_provenance,*associated,services.size(),std::string{offer->session_id.text()}};
+    require(plan.pairs[pair_index].workload_index<plan.workloads.size(),Error::association);
+    decoded.implementation=plan.workloads[plan.pairs[pair_index].workload_index].implementation;
     auto owned=add(decoded.lease.usage().retained_bytes,sizeof(DecodedContext));
     const auto charge=[&](const std::string& text){owned=add(owned,add(text.capacity(),1U));};
     charge(decoded.canonical);charge(decoded.request_body);charge(decoded.session);
@@ -829,9 +836,16 @@ auto graph_policies(const J& value,const DecodedContext& context,Work& work)->ru
     auto overhead=measurement::MaximumHarnessOverhead::create(m.maximum_harness_overhead().numerator(),m.maximum_harness_overhead().denominator());core::detail::ExpectedErrorCleanup overhead_cleanup{overhead};
     require(calibration&&threshold&&overhead,Error::child);
     auto warmup=measurement::WarmupPolicy::create(m.warmup_minimum(),m.warmup_maximum(),m.warmup_stability_window(),*threshold);core::detail::ExpectedErrorCleanup w_cleanup{warmup};require(warmup.has_value(),Error::child);
-    const auto implementation=number(value.at("implementation"));require(implementation<=1U,Error::schema);
+    const auto& implementation_token=string(value.at("implementation"));
+    const auto family=k.index()==1U?kernel::KernelFamily::latency:kernel::KernelFamily::bandwidth;
+    const auto implementation=implementation_token=="0"||implementation_token=="1"?
+        std::optional<kernel::KernelImplementationId>{kernel::KernelImplementationId{static_cast<unsigned>(number(value.at("implementation")))}}:
+        kernel::parse_kernel_implementation_id(implementation_token,family);
+    require(implementation&&implementation->family()==family,Error::schema);
+    require(work.equal(kernel::kernel_implementation_id_token(*implementation),
+        kernel::kernel_implementation_id_token(context.implementation)),Error::association);
     return {*calibration,*warmup,header.repetition_policy,header.comparison_order,measurement::ObservationValidityPolicy::create(*overhead),
-        header.statistics_policy,header.monitoring_policy,k,static_cast<kernel::KernelImplementationId>(implementation),number(value.at("root_seed")),number(value.at("latency_seed")),boolean(value.at("calibration_enabled"))};
+        header.statistics_policy,header.monitoring_policy,k,*implementation,number(value.at("root_seed")),number(value.at("latency_seed")),boolean(value.at("calibration_enabled"))};
 }
 }
 auto PairContextDecoder::graph(block_evidence::PairPrefix& prefix,std::uint64_t sequence,const journal::Timestamp& time,
@@ -1486,7 +1500,12 @@ void replay_component(ComposedPair& pair,const Record& record,std::span<const Re
         timing["calibration_ref"]=std::to_string(prefix.calibration_event()->sequence);
         result=PairContextDecoder::observation(prefix,child,*time,failed,string(facts.at("component")),timing,*pair.context,limits.error,work);
         if(result){const auto updated=prefix.events(prefix.block_count()-1U);require(!updated.empty()&&updated.back().timing,Error::association);
-            const auto identity=updated.back().timing->identity();require(identity&&identity->block.value()==*record.scope.block&&identity->observation.value()==*record.scope.observation,Error::association);}
+            const auto identity=updated.back().timing->identity();require(identity&&identity->block.value()==*record.scope.block&&identity->observation.value()==*record.scope.observation,Error::association);
+            if(const auto* factual=updated.back().component.factual())std::visit([&](const auto& measured){
+                require(work.equal(kernel::kernel_implementation_id_token(measured.implementation_id()),
+                    kernel::kernel_implementation_id_token(pair.context->implementation)),Error::association);
+            },factual->observation);
+        }
         break;}
     case Kind::block_closed:{
         fields(facts,{"origin","opened_ref","completion","observations"});

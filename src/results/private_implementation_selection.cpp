@@ -30,7 +30,7 @@ auto safe_token(SV text) noexcept -> bool {
     const char* current=text.data();const char* end=current+text.size();
     while(current!=end) {
         const auto c=static_cast<unsigned char>(*current++);
-        if(!((c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='.'||c=='-'||c=='/'))return false;
+        if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='.'||c=='-'||c=='/'||c=='_'))return false;
     }
     return true;
 }
@@ -72,6 +72,7 @@ struct Sink {
     }
 };
 void emit(Sink& out,const State& state,const ns::Owner& child) {
+    const bool plugins=detail::uses_plugins(state.workloads);
     out.raw("{\"bindings\":[");bool first=true;
     for(const auto& binding:state.bindings) {
         out.work.debit();if(!first)out.raw(",");first=false;
@@ -81,11 +82,21 @@ void emit(Sink& out,const State& state,const ns::Owner& child) {
     out.raw("\",\"normalization_hex\":\"");out.hex(child.canonical());
     out.raw("\",\"resolved_plan_digest\":\"");out.digest(child.plan()->resolved_digest()->digest());
     out.raw("\",\"scenario_digest\":\"");out.digest(child.plan()->scenario_digest()->digest());
-    out.raw("\",\"schema\":\"");out.raw(profile);out.raw("\",\"workloads\":[");first=true;
+    out.raw("\",\"schema\":\"");out.raw(plugins?plugin_profile:profile);out.raw("\",\"workloads\":[");first=true;
     for(const auto& value:state.workloads) {
         out.work.debit();if(!first)out.raw(",");first=false;
         out.raw("[\"");out.hex(value.workload_id);out.raw("\",\"");out.raw(kernel::kernel_id_token(value.semantic));
-        out.raw("\",\"");out.raw(kernel::kernel_implementation_id_token(value.implementation));out.raw("\"]");
+        out.raw("\",\"");out.raw(kernel::kernel_implementation_id_token(value.implementation));out.raw("\"");
+        if(plugins) {
+            out.raw(",");
+            if(value.module) {
+                out.raw("{\"build_info_hex\":\"");out.hex(value.module->build_info);
+                out.raw("\",\"family\":\"");out.raw(value.semantic.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency");
+                out.raw("\",\"file_sha256\":\"");out.raw(value.module->file_sha256);
+                out.raw("\",\"version_hex\":\"");out.hex(value.module->version);out.raw("\"}");
+            } else out.raw("null");
+        }
+        out.raw("]");
     }
     out.raw("]}");
 }
@@ -141,9 +152,21 @@ auto find_workload(std::span<const Workload> rows,SV key,Z& used,Z limit) -> std
     catch(Error error){used=work.used;return std::unexpected{error};}
 }
 auto mapping_valid(kernel::KernelId id,kernel::KernelImplementationId implementation,SV token) noexcept -> bool {
-    const auto* descriptor=kernel::find_kernel_descriptor(id);
-    return descriptor&&descriptor->kernel_id()==id&&descriptor->implementation_id()==implementation&&
+    return id.family()!=kernel::KernelFamily::invalid&&id.family()==implementation.family()&&
         safe_token(token)&&kernel::kernel_implementation_id_token(implementation)==token;
+}
+auto uses_plugins(std::span<const Workload> rows) noexcept -> bool {
+    return std::ranges::any_of(rows,[](const auto& row) {
+        return row.module.has_value() ||
+            (row.semantic!=kernel::KernelId::sequential_read_bandwidth_v1&&row.semantic!=kernel::KernelId::dependent_load_latency_v1) ||
+            (row.implementation!=kernel::KernelImplementationId::scalar_u64_sequential_v1&&
+             row.implementation!=kernel::KernelImplementationId::scalar_u64_random_cycle_v1);
+    });
+}
+auto valid_module(const kernel::ModuleIdentity& module) noexcept -> bool {
+    return !module.version.empty()&&module.version.size()<=128U&&
+        !module.build_info.empty()&&module.build_info.size()<=4096U&&module.file_sha256.size()==64U&&
+        std::ranges::all_of(module.file_sha256,[](char c){return (c>='0'&&c<='9')||(c>='a'&&c<='f');});
 }
 }
 Owner::Owner(std::unique_ptr<State> state) noexcept:state_(std::move(state)){}
@@ -175,6 +198,13 @@ auto retain(ns::Owner&& input,Limits limits) -> std::expected<Owner,Error> {
             work.debit();need(work.equal(key,value.workload_id),Error::reference);
             usage.workload_text_bytes=add(usage.workload_text_bytes,key.size());
             usage.maximum_workload_text=std::max(usage.maximum_workload_text,key.size());
+            const auto* descriptor=kernel::find_kernel_descriptor(value.kernel_id);need(descriptor,Error::registry);
+            if(const auto& module=descriptor->module_identity();module) {
+                need(detail::valid_module(*module),Error::registry);
+                const auto text=add(add(module->version.size(),module->build_info.size()),module->file_sha256.size());
+                work.debit(text);usage.workload_text_bytes=add(usage.workload_text_bytes,text);
+                usage.maximum_workload_text=std::max({usage.maximum_workload_text,module->version.size(),module->build_info.size(),module->file_sha256.size()});
+            }
             bound(usage.workload_text_bytes,limits.workload_text_bytes);bound(usage.maximum_workload_text,limits.maximum_workload_text);
         }
         const auto dynamic=add(add(mul(usage.workloads,sizeof(Workload)),mul(usage.bindings,sizeof(Binding))),usage.workload_text_bytes);
@@ -189,6 +219,7 @@ auto retain(ns::Owner&& input,Limits limits) -> std::expected<Owner,Error> {
             work.debit(add(semantic.size(),implementation.size()));need(safe_token(semantic)&&safe_token(implementation),Error::registry);
             work.debit(key.size());state->workloads.emplace_back();auto& row=state->workloads.back();row.workload_id=key;
             row.semantic=value.kernel_id;row.implementation=descriptor->implementation_id();
+            row.module=descriptor->module_identity();
         }
         for(const auto& value:bindings) {
             work.debit();const auto index=search(state->workloads,value.workload_id,work);

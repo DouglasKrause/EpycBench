@@ -3,6 +3,7 @@
 #include "epycbench/core/error.hpp"
 #include "epycbench/core/id.hpp"
 #include "epycbench/kernel/configuration.hpp"
+#include "epycbench/kernel/plugin.h"
 
 #include <cstddef>
 #include <expected>
@@ -68,12 +69,16 @@ class PreparedDependentLoadLatency {
 
     [[nodiscard]] auto node_count() const noexcept -> std::size_t { return node_count_; }
 
+    void bind_module(const EpycBenchKernelV1& api) noexcept { module_ = &api; }
+    [[nodiscard]] auto module() const noexcept -> const EpycBenchKernelV1* { return module_; }
+
   private:
     PreparedDependentLoadLatency(DependentLoadLatencyInput input,
                                  std::size_t node_count) noexcept;
 
     const DependentLoadLatencyInput input_;
     const std::size_t node_count_;
+    const EpycBenchKernelV1* module_{};
 };
 
 class DependentLoadLatencyStepCount {

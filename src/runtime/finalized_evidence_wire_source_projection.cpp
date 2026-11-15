@@ -15,9 +15,9 @@ using Lower = platform_linux::detail::AuthenticatedLinuxMonitoringCapacityAuthor
 using Admission = runtime::detail::PairwiseMonitoringHostCapacityAdmission;
 
 constexpr std::string_view registry_hex =
-    "2639a505882a42779853bba12287b7c72ebe56b40c3e96c245a12a8c58fd34d5";
+    "626c6355f54a5f7abea5a67cd6c8db95efd423540291145dc050c976c9038f48";
 constexpr std::string_view source_manifest_hex =
-    "e6faf94e4be36587ba52efc862fb055355ef77209074ba50abd8f21838f264b8";
+    "2c5cf4461e02b8d8aa3c95a0b3918237bbb7d3af8c6a4c631008de08ea56c09b";
 
 auto invalid(CapacityField field = CapacityField::input) -> CapacityError {
     return {CapacityErrorCode::invalid_input, field};

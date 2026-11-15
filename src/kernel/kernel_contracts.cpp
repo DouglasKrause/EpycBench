@@ -27,14 +27,19 @@ auto decimal(std::uint64_t value) -> std::string { return std::to_string(value);
 
 } // namespace
 
-auto kernel_id_token(KernelId id) noexcept -> std::string_view {
-    switch (id) {
-    case KernelId::sequential_read_bandwidth_v1:
-        return "memory.bandwidth.read/v1";
-    case KernelId::dependent_load_latency_v1:
-        return "memory.latency.dependent-load/v1";
+auto detail::valid_kernel_identity_token(std::string_view token) noexcept -> bool {
+    if (token.empty() || token.size() > maximum_kernel_identity_bytes ||
+        token.front() == '/' || token.back() == '/' || token.contains("//")) return false;
+    for (const auto ch : token) {
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+              (ch >= '0' && ch <= '9') || ch == '.' || ch == '-' || ch == '_' || ch == '/'))
+            return false;
     }
-    return {};
+    return true;
+}
+
+auto kernel_id_token(const KernelId& id) noexcept -> std::string_view {
+    return id.token();
 }
 
 auto parse_kernel_id(std::string_view token) noexcept -> std::optional<KernelId> {
@@ -42,6 +47,14 @@ auto parse_kernel_id(std::string_view token) noexcept -> std::optional<KernelId>
         return KernelId::sequential_read_bandwidth_v1;
     if (token == "memory.latency.dependent-load/v1")
         return KernelId::dependent_load_latency_v1;
+    if (!detail::valid_kernel_identity_token(token) || !token.ends_with("/v1"))
+        return std::nullopt;
+    constexpr std::string_view bandwidth = "memory.bandwidth.read/";
+    constexpr std::string_view latency = "memory.latency.dependent-load/";
+    if (token.starts_with(bandwidth) && token.size() > bandwidth.size() + 3U)
+        return KernelId{token, KernelFamily::bandwidth};
+    if (token.starts_with(latency) && token.size() > latency.size() + 3U)
+        return KernelId{token, KernelFamily::latency};
     return std::nullopt;
 }
 
@@ -106,7 +119,7 @@ auto semantic_projection(KernelId id, const KernelConfiguration& configuration)
     -> std::expected<nlohmann::ordered_json, core::Error> {
     nlohmann::ordered_json parameters = nlohmann::ordered_json::object();
     core::detail::JsonCleanup parameters_cleanup{parameters};
-    if (id == KernelId::sequential_read_bandwidth_v1) {
+    if (id.family() == KernelFamily::bandwidth) {
         const auto* value = std::get_if<SequentialReadBandwidthConfig>(&configuration);
         if (value == nullptr)
             return std::unexpected{contract_error("configuration_identity_mismatch")};
@@ -115,7 +128,7 @@ auto semantic_projection(KernelId id, const KernelConfiguration& configuration)
         parameters["access_pattern"] = "sequential";
         parameters["element_size_bytes"] = "8";
         parameters["alignment_bytes"] = "64";
-    } else if (id == KernelId::dependent_load_latency_v1) {
+    } else if (id.family() == KernelFamily::latency) {
         const auto* value = std::get_if<DependentLoadLatencyConfig>(&configuration);
         if (value == nullptr)
             return std::unexpected{contract_error("configuration_identity_mismatch")};

@@ -5,10 +5,12 @@
 
 namespace epycbench::results::implementation_selection {
 inline constexpr std::string_view profile="epycbench.private-implementation-selection/v1";
+inline constexpr std::string_view plugin_profile="epycbench.private-implementation-selection/v2";
 struct Workload {
     std::string workload_id;
     kernel::KernelId semantic;
     kernel::KernelImplementationId implementation;
+    std::optional<kernel::ModuleIdentity> module{};
 };
 struct Binding { std::size_t experiment_index,workload_index; };
 enum class Error { state,origin,source,capacity,reference,registry,encoding };
@@ -37,6 +39,8 @@ struct State {
 [[nodiscard]] auto find_workload(std::span<const Workload>,std::string_view,std::size_t& work,std::size_t limit)
     -> std::expected<std::size_t,Error>;
 [[nodiscard]] auto mapping_valid(kernel::KernelId,kernel::KernelImplementationId,std::string_view) noexcept -> bool;
+[[nodiscard]] auto uses_plugins(std::span<const Workload>) noexcept -> bool;
+[[nodiscard]] auto valid_module(const kernel::ModuleIdentity&) noexcept -> bool;
 }
 class Owner {
   public:

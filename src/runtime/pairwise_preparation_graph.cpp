@@ -374,7 +374,7 @@ auto PreparationGraphFactsView::matches_inputs(const AdmittedMeasurementInputs& 
         if (p.comparison.strategy()!=measurement::ComparisonOrderStrategy::randomized_balanced) return false;
         break;
     }
-    if (p.implementation!=(first.index()==1U ? kernel::KernelImplementationId::scalar_u64_random_cycle_v1 : kernel::KernelImplementationId::scalar_u64_sequential_v1)) return false;
+    if (p.implementation.family()!=(first.index()==1U ? kernel::KernelFamily::latency : kernel::KernelFamily::bandwidth)) return false;
     if (first.index()==1U && p.latency_seed!=std::get<AdmittedLatencyExecutionInputs>(first).resolved_permutation_seed()) return false;
     for (const auto& row : this->kernels)
         if (!row.captured || row.index>=this->workers.size() || row.worker!=this->workers[row.index].worker || row.latency!=(first.index()==1U)) return false;

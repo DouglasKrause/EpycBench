@@ -151,7 +151,7 @@ auto SequentialReadBandwidthObservation::create(
     MeasurementInterval enclosing_interval)
     -> std::expected<SequentialReadBandwidthObservation, core::Error> {
     constexpr auto operation = "measurement.observation.bandwidth.create";
-    if (implementation_id != kernel::KernelImplementationId::scalar_u64_sequential_v1) {
+    if (implementation_id.family() != kernel::KernelFamily::bandwidth) {
         return std::unexpected{implementation_mismatch_error(operation)};
     }
     if (workers.empty()) {
@@ -225,7 +225,7 @@ auto DependentLoadLatencyObservation::create(
     MeasurementInterval enclosing_interval)
     -> std::expected<DependentLoadLatencyObservation, core::Error> {
     constexpr auto operation = "measurement.observation.latency.create";
-    if (implementation_id != kernel::KernelImplementationId::scalar_u64_random_cycle_v1) {
+    if (implementation_id.family() != kernel::KernelFamily::latency) {
         return std::unexpected{implementation_mismatch_error(operation)};
     }
     if (workers.empty()) {

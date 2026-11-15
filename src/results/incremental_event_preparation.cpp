@@ -1,7 +1,6 @@
 #include "results/incremental_event_preparation.hpp"
 #include "results/incremental_event_profile.hpp"
 #include "epycbench/core/canonical_json.hpp"
-#include "epycbench/kernel/registry.hpp"
 #include "runtime/scenario_monitoring_policy_projection.hpp"
 #include "runtime/production_admission_policy.hpp"
 #include "core/json_ownership.hpp"
@@ -75,7 +74,8 @@ auto family(const selection::Workload& workload)->std::size_t {
 void selection_facts(PlanFacts& out,const Json& value,const normalization_serialization::Owner& normalization,
     const PlanLimits& bound,Work& work) {
     fields(value,{"bindings","normalization_digest","normalization_hex","resolved_plan_digest","scenario_digest","schema","workloads"});
-    require(text(value.at("schema"))==selection::profile,Error::schema);
+    const bool plugins=text(value.at("schema"))==selection::plugin_profile;
+    require(plugins||text(value.at("schema"))==selection::profile,Error::schema);
     const auto* normalized=normalization.plan();require(normalized&&normalization.digest(),Error::child);
     require(work.equal(unhex(value.at("normalization_hex"),work),normalization.canonical()),Error::association);
     same_digest(value.at("normalization_digest"),*normalization.digest(),work);
@@ -91,14 +91,27 @@ void selection_facts(PlanFacts& out,const Json& value,const normalization_serial
     require(text_bytes<=bound.text,Error::capacity);
     out.workloads.reserve(workloads.size());out.bindings.reserve(bindings.size());
     for(const auto& [id,source]:workloads){
-        work.debit(add(1U,id.size()));const auto* descriptor=kernel::find_kernel_descriptor(source.kernel_id);
-        require(descriptor&&descriptor->kernel_id()==source.kernel_id,Error::association);
+        work.debit(add(1U,id.size()));
         const auto& row=value.at("workloads")[out.workloads.size()];
-        Json expected=Json::array();core::detail::JsonCleanup cleanup{expected};
-        expected.push_back(hex(id,work));expected.push_back(kernel::kernel_id_token(source.kernel_id));
-        expected.push_back(kernel::kernel_implementation_id_token(descriptor->implementation_id()));same(row,expected,bound,work);
-        out.workloads.push_back({id,source.kernel_id,descriptor->implementation_id()});
+        require(row.is_array()&&row.size()==(plugins?4U:3U),Error::schema);
+        require(work.equal(text(row[0]),hex(id,work))&&
+            work.equal(text(row[1]),kernel::kernel_id_token(source.kernel_id)),Error::association);
+        const auto implementation=kernel::parse_kernel_implementation_id(text(row[2]),source.kernel_id.family());
+        require(implementation.has_value(),Error::association);
+        if(!plugins)require(*implementation==(source.kernel_id.family()==kernel::KernelFamily::bandwidth?
+            implementations[0]:implementations[1]),Error::association);
+        std::optional<kernel::ModuleIdentity> module;
+        if(plugins&&!row[3].is_null()) {
+            fields(row[3],{"build_info_hex","family","file_sha256","version_hex"});
+            require(text(row[3].at("family"))==(source.kernel_id.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency"),Error::association);
+            module.emplace(kernel::ModuleIdentity{unhex(row[3].at("version_hex"),work),unhex(row[3].at("build_info_hex"),work),text(row[3].at("file_sha256"))});
+            require(selection::detail::valid_module(*module),Error::schema);
+            text_bytes=add(text_bytes,add(add(module->version.size(),module->build_info.size()),module->file_sha256.size()));
+            require(text_bytes<=bound.text,Error::capacity);
+        }
+        out.workloads.push_back({id,source.kernel_id,*implementation,std::move(module)});
     }
+    require(plugins==selection::detail::uses_plugins(out.workloads),Error::schema);
     for(const auto& source:bindings){
         work.debit(1U);const auto selected=selection::detail::find_workload(out.workloads,source.workload_id,work.used,work.limit);
         require(selected.has_value(),Error::association);
@@ -133,11 +146,13 @@ void build_facts(PlanFacts& out,const Json& value,const normalization_serializat
     const PlanLimits& bound,Work& work) {
     fields(value,{"base_build_digest","base_build_hex","build_manifest_digest","families",
         "implementation_selection_digest","implementation_selection_hex","schema"});
-    require(text(value.at("schema"))==association::profile,Error::schema);
+    const bool plugins=text(value.at("schema"))==association::plugin_profile;
+    require(plugins||text(value.at("schema"))==association::profile,Error::schema);
     const auto selected_bytes=unhex(value.at("implementation_selection_hex"),work);
     same_digest(value.at("implementation_selection_digest"),digest(selected_bytes,work),work);
     auto selected_tree=parse(selected_bytes,bound,work);core::detail::JsonCleanup selected_cleanup{selected_tree};
     selection_facts(out,selected_tree,normalization,bound,work);
+    require(plugins==selection::detail::uses_plugins(out.workloads),Error::association);
     const auto base_bytes=unhex(value.at("base_build_hex"),work);
     auto base=base_build_serialization::Owner::decode(base_bytes,bound.base);require(base.has_value(),Error::child);
     same_digest(value.at("base_build_digest"),*base->digest(),work);
@@ -155,10 +170,15 @@ void build_facts(PlanFacts& out,const Json& value,const normalization_serializat
     for(const auto& binding:out.bindings){work.debit(1U);++bindings[family(out.workloads[binding.workload_index])];}
     for(std::size_t f{};f<2U;++f){
         work.debit(1U);const auto& row=value.at("families")[f];
-        fields(row,{"approval","bindings","compiler_slots","declared_workloads","implementation_id","semantic_id"});
-        require(text(row.at("implementation_id"))==kernel::kernel_implementation_id_token(implementations[f])&&
-            text(row.at("semantic_id"))==kernel::kernel_id_token(semantics[f])&&
-            decimal(row.at("bindings"))==bindings[f]&&decimal(row.at("declared_workloads"))==declarations[f],Error::association);
+        if(plugins) {
+            fields(row,{"approval","bindings","compiler_slots","declared_workloads","family"});
+            require(text(row.at("family"))==(f==0U?"bandwidth":"latency"),Error::association);
+        } else {
+            fields(row,{"approval","bindings","compiler_slots","declared_workloads","implementation_id","semantic_id"});
+            require(text(row.at("implementation_id"))==kernel::kernel_implementation_id_token(implementations[f])&&
+                text(row.at("semantic_id"))==kernel::kernel_id_token(semantics[f]),Error::association);
+        }
+        require(decimal(row.at("bindings"))==bindings[f]&&decimal(row.at("declared_workloads"))==declarations[f],Error::association);
         const auto& approval=row.at("approval");
         if(!approval.is_null()){
             fields(approval,{"digest","hex","human_hex","machine_hex"});
@@ -237,6 +257,7 @@ void placement_pair(PlacementView first,PlacementView second,bool& distinct,Work
 }
 void semantic_facts(PlanFacts& out,const Json& value,const normalization_serialization::Owner& normalization,
     const PlanLimits& bound,Work& work) {
+    const bool plugins=selection::detail::uses_plugins(out.workloads);
     const auto* normalized=normalization.plan();
     const auto* ancestry=normalized->document_ancestry();const auto* comparison=normalized->comparison_experiments();
     const auto* matrix=normalized->matrix_experiments();
@@ -256,14 +277,14 @@ void semantic_facts(PlanFacts& out,const Json& value,const normalization_seriali
     expected["build_manifest_digest"]=out.base->manifest()->digest()->value().to_hex();
     for(const auto key:{"implementation_evidence","implementations","pairs"})expected[key]=Json::array();
     expected["monitoring_presence"]=counts.monitoring_present?"supplied":"not_supplied";
-    auto& policy=expected["policy"];policy["build_evidence"]=out.bindings.empty()||out.approvals[0]||out.approvals[1]?"supplied-manifest-and-bound-family-objects":"build-manifest";
+    auto& policy=expected["policy"];policy["build_evidence"]=plugins?"build-manifest-and-recorded-modules":out.bindings.empty()||out.approvals[0]||out.approvals[1]?"supplied-manifest-and-bound-family-objects":"build-manifest";
     policy["current_qualification"]="not_asserted";policy["production_admission"]="deferred";policy["schedule"]="measurement-four-slot-v1";
     auto& repeat=expected["repetition"];repeat["actual_completed"]="unknown";repeat["maximum_blocks"]=std::to_string(counts.maximum_blocks);
     repeat["maximum_measured_observations"]=ceiling->two_to_64?"18446744073709551616":std::to_string(ceiling->low);
     repeat["maximum_per_variant"]=std::to_string(counts.maximum_per_variant);repeat["minimum_blocks"]=std::to_string(counts.minimum_blocks);
     repeat["minimum_valid_per_variant"]=std::to_string(counts.minimum_valid_per_variant);repeat["stopping_enabled"]=counts.stopping_enabled;
     expected["resolved_plan_digest"]=normalized->resolved_digest()->digest().to_hex();
-    expected["scenario_digest"]=normalized->scenario_digest()->digest().to_hex();expected["schema"]=plan::profile;
+    expected["scenario_digest"]=normalized->scenario_digest()->digest().to_hex();expected["schema"]=plugins?plan::plugin_profile:plan::profile;
     auto& seed=expected["seed_intent"];seed["root_seed"]=std::to_string(counts.root_seed);auto& bootstrap=seed["bootstrap"];
     bootstrap["components"]=Json::array();bootstrap["derivation"]="deferred-to-production-policy";
     bootstrap["domain"]="bootstrap";bootstrap["profile"]="epycbench.seed-derivation.v1";
@@ -287,6 +308,20 @@ void semantic_facts(PlanFacts& out,const Json& value,const normalization_seriali
         Json row=Json::array();core::detail::JsonCleanup row_cleanup{row};row.push_back(hex(workload.workload_id,work));
         row.push_back(kernel::kernel_id_token(workload.semantic));row.push_back(kernel::kernel_implementation_id_token(workload.implementation));
         expected["implementations"].push_back(std::move(row));
+    }
+    if(plugins) {
+        expected["modules"]=Json::array();
+        for(const auto& workload:out.workloads) {
+            if(!workload.module){expected["modules"].push_back(nullptr);continue;}
+            core::detail::append_object_json(expected["modules"],[&](Json& row){
+                row["build_info_hex"]=hex(workload.module->build_info,work);
+                row["family"]=workload.semantic.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency";
+                row["file_sha256"]=workload.module->file_sha256;
+                row["implementation_id"]=kernel::kernel_implementation_id_token(workload.implementation);
+                row["kernel_id"]=kernel::kernel_id_token(workload.semantic);
+                row["version_hex"]=hex(workload.module->version,work);row["workload_hex"]=hex(workload.workload_id,work);
+            });
+        }
     }
     const auto& ordinary=*comparison->experiments();const auto& matrices=*matrix->experiments();
     std::size_t pair_count{};
@@ -390,7 +425,10 @@ auto decode_plan(SV bytes,const normalization_serialization::Owner& normalizatio
     for(const auto& approval:result.approvals)if(approval)retained=add(retained,approval->usage().retained_bytes);
     retained=add(retained,add(multiply(result.workloads.capacity(),sizeof(selection::Workload)),
         add(multiply(result.bindings.capacity(),sizeof(selection::Binding)),multiply(result.pairs.capacity(),sizeof(plan::Pair)))));
-    for(const auto& row:result.workloads)retained=add(retained,row.workload_id.size());
+    for(const auto& row:result.workloads) {
+        retained=add(retained,row.workload_id.size());
+        if(row.module)retained=add(retained,add(add(row.module->version.size(),row.module->build_info.size()),row.module->file_sha256.size()));
+    }
     require(retained<=bound.retained&&retained<=bound.simultaneous,Error::capacity);
     result.retained=retained;result.simultaneous=peak;return result;
 }

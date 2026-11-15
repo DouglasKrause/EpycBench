@@ -13,6 +13,9 @@
 #include "cli/monitoring_q4_command.hpp"
 
 #include <string_view>
+#include "runtime/kernel_module_session.hpp"
+#include <optional>
+#include <vector>
 #include <iostream>
 
 namespace epycbench::cli {
@@ -20,6 +23,29 @@ namespace epycbench::cli {
 auto run(int argc, char* argv[], topology::cli::Environment& environment,
          runtime::ControllerProcessProductionAuthority& production_authority, std::ostream& output,
          std::ostream& error) -> int {
+    std::optional<std::filesystem::path> module_directory;
+    std::vector<char*> filtered;
+    filtered.reserve(static_cast<std::size_t>(argc) + 1);
+    for (int i = 0; i < argc; ++i) {
+        if (std::string_view{argv[i]} == "--module-dir") {
+            if (module_directory || i + 1 >= argc || std::string_view{argv[i + 1]}.empty()) {
+                error << "epycbench: --module-dir requires one directory\n";
+                return 2;
+            }
+            module_directory = argv[++i];
+        } else filtered.push_back(argv[i]);
+    }
+    argc = static_cast<int>(filtered.size());
+    filtered.push_back(nullptr);
+    argv = filtered.data();
+    // Offline result commands do not load modules or require their installation.
+    const bool benchmarking = argc == 1 || (argc > 1 && std::string_view{argv[1]} == "run");
+    const auto modules = benchmarking ? runtime::initialize_kernel_modules(module_directory)
+                                     : std::expected<void, std::string>{};
+    if (!modules && argc > 1) {
+        error << "epycbench: kernel modules: " << modules.error() << '\n';
+        return 2;
+    }
     if (argc == 1) {
         return run_terminal_menu(std::cin, output, error,
             [&] {
@@ -33,7 +59,10 @@ auto run(int argc, char* argv[], topology::cli::Environment& environment,
                 char* words[]{program,help};
                 return topology::cli::run(2,words,environment,output,error);
             },
-            [&] {return benchmark_run_command::run_demo(production_authority,output,error);},
+            [&] {
+                if (!modules) { error << "epycbench: kernel modules: " << modules.error() << '\n'; return 2; }
+                return benchmark_run_command::run_demo(production_authority,output,error);
+            },
             [&] {return inspect_machine(environment,output,error);},
             [&] {return view_machine(environment,output,error);});
     }

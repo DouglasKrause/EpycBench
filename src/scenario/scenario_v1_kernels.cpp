@@ -97,7 +97,7 @@ class Dispatcher {
                              {{"parameter", "working_set"}});
             return std::nullopt;
         }
-        if (id == kernel::KernelId::dependent_load_latency_v1 && parsed->value() < 128U) {
+        if (id.family() == kernel::KernelFamily::latency && parsed->value() < 128U) {
             diagnostics_.add("scenario.kernel.invalid_parameter", pointer,
                              "latency_working_set_too_small",
                              {{"parameter", "working_set"}});
@@ -111,7 +111,7 @@ class Dispatcher {
         for (auto iterator = parameters_value.begin();
              iterator != parameters_value.end() && !diagnostics_.capped(); ++iterator) {
             const auto known = iterator.key() == "working_set" ||
-                               (id == kernel::KernelId::dependent_load_latency_v1 &&
+                               (id.family() == kernel::KernelFamily::latency &&
                                 iterator.key() == "chain_seed");
             if (!known) {
                 const auto pointer = base + "/parameters/" + iterator.key();
@@ -143,7 +143,7 @@ class Dispatcher {
         const auto before = diagnostic_count();
         auto working_set = parse_working_set(params, base, id, workload.contains("parameters"));
         std::optional<kernel::PointerCycleSeedIntent> seed_intent;
-        if (id == kernel::KernelId::dependent_load_latency_v1) {
+        if (id.family() == kernel::KernelFamily::latency) {
             const auto seed = params.find("chain_seed");
             if (seed == params.end()) {
                 seed_intent = kernel::PointerCycleSeedIntent::derive_per_experiment();
@@ -164,7 +164,7 @@ class Dispatcher {
         }
 
         std::optional<ParsedWorkload> parsed;
-        if (id == kernel::KernelId::sequential_read_bandwidth_v1) {
+        if (id.family() == kernel::KernelFamily::bandwidth) {
             auto config = kernel::SequentialReadBandwidthConfig::create(*working_set);
             if (!config)
                 return std::unexpected{kernel_dispatch_internal_error(
@@ -209,7 +209,7 @@ class Dispatcher {
     auto resolved_seed(const Json& experiment, const DispatchedWorkload& workload)
         -> std::expected<std::pair<std::optional<std::uint64_t>,
                                   std::optional<PointerCycleSeedOrigin>>, core::Error> {
-        if (workload.kernel_id != kernel::KernelId::dependent_load_latency_v1)
+        if (workload.kernel_id.family() != kernel::KernelFamily::latency)
             return std::pair{std::optional<std::uint64_t>{},
                              std::optional<PointerCycleSeedOrigin>{}};
         const auto& config = std::get<kernel::DependentLoadLatencyConfig>(workload.configuration);
@@ -271,8 +271,7 @@ class Dispatcher {
                                     }, memory.placement),
                                     experiment_index, memory.variant_index);
             }
-            if (workload->kernel_id ==
-                kernel::KernelId::dependent_load_latency_v1) {
+            if (workload->kernel_id.family() == kernel::KernelFamily::latency) {
                 auto count = worker_count(experiment_index);
                 if (!count) return std::unexpected{std::move(count.error())};
                 if (*count != 1U)
@@ -292,8 +291,7 @@ class Dispatcher {
                 check_page_size(*workload, memory->page_size, experiment_index,
                                 std::nullopt);
             }
-            if (workload->kernel_id ==
-                kernel::KernelId::dependent_load_latency_v1)
+            if (workload->kernel_id.family() == kernel::KernelFamily::latency)
                 deferred.push_back(DeferredKernelConstraint::exactly_one_worker);
         }
         bindings_.push_back({experiment_index, name, seed->first, seed->second,

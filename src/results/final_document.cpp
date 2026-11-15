@@ -1465,6 +1465,8 @@ void experiments(Node n, const Sources& s, const ep::Transaction& tx, Budget& b)
         artifact(workload, "dispatch", retained->kernel_dispatch(),
                  kernel_dispatch_serialization::profile);
         if (plan) {
+            const bool plugins=implementation_selection::detail::uses_plugins(plan->workloads);
+            require(!plugins||tx.version()==ep::Version::compact_v3,Error::schema);
             auto selected = workload.present("selection");
             selected.array();
             for (const auto& binding : plan->bindings)
@@ -1474,8 +1476,20 @@ void experiments(Node n, const Sources& s, const ep::Transaction& tx, Budget& b)
                     auto item = selected.element();
                     item.object();
                     item.text("workload_id", value.workload_id);
-                    item.number("semantic", static_cast<unsigned>(value.semantic));
-                    item.number("implementation", static_cast<unsigned>(value.implementation));
+                    if(plugins) {
+                        item.text("schema","epycbench.kernel-selection/v2");
+                        item.text("semantic",kernel::kernel_id_token(value.semantic));
+                        item.text("implementation",kernel::kernel_implementation_id_token(value.implementation));
+                        item.text("family",value.semantic.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency");
+                        if(value.module) {
+                            auto module=item.object("module");
+                            module.text("version",value.module->version);module.text("build_info",value.module->build_info);
+                            module.text("file_sha256",value.module->file_sha256);
+                        } else item.null("module");
+                    } else {
+                        item.number("semantic", value.semantic==kernel::KernelId::sequential_read_bandwidth_v1?0U:1U);
+                        item.number("implementation", static_cast<unsigned>(value.implementation));
+                    }
                 }
         } else
             workload.absent("selection", "plan_unavailable");

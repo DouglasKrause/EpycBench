@@ -1,4 +1,5 @@
 #include "epycbench/runtime/pairwise_production_operations_adapter.hpp"
+#include "runtime/kernel_module_session.hpp"
 #include "runtime/pairwise_production_operations_support.hpp"
 #include "memory/region_finalization_diagnostic_access.hpp"
 #include "epycbench/kernel/region_initialization.hpp"
@@ -645,6 +646,8 @@ auto execute_bandwidth_worker(void* opaque, const WorkerExecutionContext& worker
     const auto checksum = kernel::PreparedSequentialReadBandwidthChecksum::prepare(*prepared);
     auto verification = kernel::verify_sequential_read_bandwidth_checksum(
         checksum.expected_terminal(command.work), terminal);
+    if (!module_verification_matches(*prepared, verification))
+        return std::unexpected{adapter_error("kernel_module_verification")};
     command.results[worker.worker_index].emplace(Evidence::create(
         worker.worker_id, *measured, *work, verification));
     return {};
@@ -669,6 +672,8 @@ auto execute_latency_worker(void* opaque, const WorkerExecutionContext& worker,
     if (!measured) return std::unexpected{measured.error()};
     auto verification = kernel::verify_dependent_load_latency_terminal(
         prepared->verification.expected_terminal(*schedule), terminal);
+    if (!module_verification_matches(prepared->kernel, verification))
+        return std::unexpected{adapter_error("kernel_module_verification")};
     command.results[worker.worker_index].emplace(Evidence::create(
         worker.worker_id, *measured, *schedule, verification));
     return {};
@@ -1149,6 +1154,9 @@ auto prepare_family(const AdmittedPlacementRequest& first,
             if (!second_input) return std::unexpected{second_input.error()};
             first_kernel[index].emplace(kernel::PreparedSequentialReadBandwidth::prepare(*first_input));
             second_kernel[index].emplace(kernel::PreparedSequentialReadBandwidth::prepare(*second_input));
+            if (!bind_kernel_module(*first_kernel[index], first.request().experiment().kernel_id()) ||
+                !bind_kernel_module(*second_kernel[index], first.request().experiment().kernel_id()))
+                return std::unexpected{adapter_error("kernel_module_preparation")};
         }
         return FamilyResources{std::in_place_type<BandwidthResources>, bandwidth->configuration(),
             std::move(first_memory), std::move(second_memory), std::move(first_kernel),
@@ -1166,6 +1174,9 @@ auto prepare_family(const AdmittedPlacementRequest& first,
         if (!second_input) return std::unexpected{second_input.error()};
         auto first_prepared = kernel::PreparedDependentLoadLatency::prepare(*first_input);
         auto second_prepared = kernel::PreparedDependentLoadLatency::prepare(*second_input);
+        if (!bind_kernel_module(first_prepared, first.request().experiment().kernel_id()) ||
+            !bind_kernel_module(second_prepared, first.request().experiment().kernel_id()))
+            return std::unexpected{adapter_error("kernel_module_preparation")};
         auto first_verification = kernel::PreparedDependentLoadLatencyVerification::prepare(
             first_prepared, latency.resolved_permutation_seed());
         auto second_verification = kernel::PreparedDependentLoadLatencyVerification::prepare(

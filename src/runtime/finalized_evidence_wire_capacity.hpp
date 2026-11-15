@@ -166,10 +166,13 @@ struct ResourcePlan final {
         -> bool = default;
 };
 
+enum class KernelIdentityCapacity { plugin_tokens, legacy_builtin_tokens };
+
 struct CalculatedEvidenceCapacity final {
     CalculatedCapacityPrerequisite prerequisite;
     LogicalShape logical_shape;
     ResourcePlan resource_plan;
+    KernelIdentityCapacity identities{KernelIdentityCapacity::plugin_tokens};
     friend constexpr auto operator==(const CalculatedEvidenceCapacity&,
                                      const CalculatedEvidenceCapacity&) noexcept -> bool = default;
 };
@@ -252,7 +255,9 @@ namespace detail {
     -> std::expected<LogicalShape, CapacityError>;
 
 [[nodiscard]] auto calculate_evidence_capacity(const NormalizedCapacityParameters& parameters,
-                                                LocalResourceLimits limits = {}) noexcept
+                                                LocalResourceLimits limits = {},
+                                                KernelIdentityCapacity identities =
+                                                    KernelIdentityCapacity::plugin_tokens) noexcept
     -> std::expected<CalculatedEvidenceCapacity, CapacityError>;
 
 [[nodiscard]] auto

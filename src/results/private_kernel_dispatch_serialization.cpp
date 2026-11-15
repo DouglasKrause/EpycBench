@@ -216,7 +216,7 @@ struct Parser {
         while (pos<body.size() && body[pos]!='"') ++pos;
         const auto kernel_id=kernel::parse_kernel_id(body.substr(begin,pos-begin)); need(kernel_id.has_value()); token("\",");
         const auto kernel_token=text(); need(equal(kernel_token,{kernel::kernel_id_token(*kernel_id),false}),Error::reference); token(","); const auto values=config();
-        need(values.latency==(*kernel_id==kernel::KernelId::dependent_load_latency_v1),Error::reference);
+        need(values.latency==(kernel_id->family()==kernel::KernelFamily::latency),Error::reference);
         token(","); const auto source=text(); need(pointer(source,"/workloads/",id),Error::reference); token("]");
         if (output) output->workloads.emplace(key.owning(),Workload{id.owning(),*kernel_id,kernel_token.owning(),configuration(values),source.owning()});
         count.finish(); return key;
@@ -236,7 +236,7 @@ void validate(const State& state) {
     for (const auto& entry:state.workloads) {
         const auto& value=entry.second; identifier({entry.first,false}); need(entry.first==value.workload_id,Error::reference);
         need(value.kernel_token==kernel::kernel_id_token(value.kernel_id),Error::reference);
-        need((value.kernel_id==kernel::KernelId::dependent_load_latency_v1)==std::holds_alternative<Latency>(value.configuration),Error::reference);
+        need((value.kernel_id.family()==kernel::KernelFamily::latency)==std::holds_alternative<Latency>(value.configuration),Error::reference);
         need(pointer({value.source_pointer,false},"/workloads/",{value.workload_id,false}),Error::reference);
     }
     std::size_t index=0;

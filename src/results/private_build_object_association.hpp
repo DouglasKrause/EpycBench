@@ -5,6 +5,7 @@
 
 namespace epycbench::results::build_object_association {
 inline constexpr std::string_view profile="epycbench.private-build-object-association/v1";
+inline constexpr std::string_view plugin_profile="epycbench.private-build-object-association/v2";
 enum class Match { equal,different,not_available,not_comparable };
 enum class CompilerFamily { gcc,clang };
 enum class Error { state,origin,provenance,association,capacity,encoding };

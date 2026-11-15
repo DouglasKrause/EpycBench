@@ -53,10 +53,13 @@ int main(int argc, char* argv[]) {
     // Source-private routing has its own original-main provider owner. Keep
     // the normal environment-before-bootstrap route and exactly this one sole
     // authority construction expression for every actual source process.
+    int command_index = 1;
+    while (command_index + 1 < argc && std::string_view{argv[command_index]} == "--module-dir")
+        command_index += 2;
     auto environment = source_invocation || baseline_invocation || baseline_parent_invocation
         ? epycbench::topology::cli::Environment{}
         : epycbench::topology::cli::make_production_environment(
-            argc > 1 && std::string_view{argv[1]} == "result"
+            command_index < argc && std::string_view{argv[command_index]} == "result"
                 ? epycbench::cli::results_document_input_bytes : 64U * 1024U * 1024U);
     auto production_authority =
         epycbench::runtime::detail::ControllerProcessBootstrapAccess::create();

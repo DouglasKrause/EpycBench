@@ -288,6 +288,8 @@ foreach(module IN LISTS EPYCBENCH_MODULE_TARGETS)
                 src/platform_linux/thread_affinity.cpp
                 src/platform_linux/benchmark_run_input.cpp
                 src/platform_linux/presentation_files.cpp
+                src/platform_linux/kernel_modules.cpp
+                src/platform_linux/kernel_module_environment.cpp
                 src/platform_linux/raw_monotonic_clock.cpp
                 src/platform_linux/thread_rusage.cpp
                 src/platform_linux/memory_mapping.cpp
@@ -317,7 +319,7 @@ foreach(module IN LISTS EPYCBENCH_MODULE_TARGETS)
             PRIVATE
                 "${PROJECT_SOURCE_DIR}/src"
         )
-        target_link_libraries(epycbench_platform_linux PUBLIC EpycBench::core PRIVATE NUMA::NUMA Threads::Threads)
+        target_link_libraries(epycbench_platform_linux PUBLIC EpycBench::core PRIVATE NUMA::NUMA Threads::Threads ${CMAKE_DL_LIBS})
         epycbench_enable_build_options(epycbench_platform_linux)
         epycbench_enable_warnings(epycbench_platform_linux)
     elseif(module STREQUAL "topology")
@@ -599,6 +601,17 @@ endforeach()
 add_library(epycbench_kernel_registry STATIC src/kernel/registry.cpp)
 add_library(EpycBench::kernel_registry ALIAS epycbench_kernel_registry)
 
+add_library(epycbench_kernel_module_session STATIC src/runtime/kernel_module_session.cpp)
+target_include_directories(epycbench_kernel_module_session PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(epycbench_kernel_module_session PUBLIC EpycBench::kernel_registry EpycBench::platform_linux)
+epycbench_enable_build_options(epycbench_kernel_module_session)
+epycbench_enable_warnings(epycbench_kernel_module_session)
+if(BUILD_TESTING)
+    target_compile_definitions(epycbench_kernel_module_session PRIVATE EPYCBENCH_TEST_REFERENCE_KERNELS=1)
+    target_compile_definitions(epycbench_kernel_bandwidth PRIVATE EPYCBENCH_KERNEL_REFERENCE_EXECUTION=1)
+    target_compile_definitions(epycbench_kernel_latency PRIVATE EPYCBENCH_KERNEL_REFERENCE_EXECUTION=1)
+endif()
+
 add_library(epycbench_monitoring_host_capacity_authority STATIC
     src/platform_linux/authenticated_monitoring_capacity_authority.cpp)
 add_library(EpycBench::monitoring_host_capacity_authority ALIAS
@@ -855,6 +868,7 @@ add_library(epycbench_runtime_production_backend STATIC
     src/runtime/monitoring_q1_targeted_generation_bridge.cpp
 )
 add_library(EpycBench::runtime_production_backend ALIAS epycbench_runtime_production_backend)
+target_link_libraries(epycbench_runtime_production_backend PRIVATE epycbench_kernel_module_session)
 target_compile_features(epycbench_runtime_production_backend PUBLIC cxx_std_23)
 target_include_directories(
     epycbench_runtime_production_backend
@@ -1172,7 +1186,7 @@ target_link_libraries(epycbench_monitoring_qualification
     PUBLIC EpycBench::runtime_production_backend EpycBench::topology EpycBench::build_manifest
            EpycBench::kernel_registry
     PRIVATE EpycBench::platform_linux EpycBench::monitoring_host_capacity_authority
-            EpycBench::finalized_evidence_wire_typed_reconstruction
+            EpycBench::finalized_evidence_wire_typed_reconstruction epycbench_kernel_module_session
 )
 epycbench_enable_build_options(epycbench_monitoring_qualification)
 epycbench_enable_warnings(epycbench_monitoring_qualification)
@@ -1397,6 +1411,7 @@ epycbench_enable_warnings(epycbench_results_journal_snapshot)
 # transcripts to one role-local prepared evidence session. It selects no IPC
 # route and owns no descriptor, process, backend, host, or public authority.
 add_library(epycbench_pairwise_v2_production_entry STATIC src/runtime/pairwise_v2_production_entry.cpp)
+target_link_libraries(epycbench_pairwise_v2_production_entry PRIVATE epycbench_kernel_module_session)
 target_compile_features(epycbench_pairwise_v2_production_entry PUBLIC cxx_std_23)
 target_include_directories(epycbench_pairwise_v2_production_entry PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(epycbench_pairwise_v2_production_entry PUBLIC
@@ -2880,22 +2895,76 @@ add_executable(epycbench src/main.cpp)
 target_compile_features(epycbench PRIVATE cxx_std_23)
 target_include_directories(epycbench PRIVATE "${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(epycbench PRIVATE EpycBench::build_manifest epycbench_cli
-    EpycBench::runtime_production_backend epycbench_pairwise_v2_production_entry)
+    EpycBench::runtime_production_backend epycbench_pairwise_v2_production_entry epycbench_kernel_module_session)
+target_link_libraries(epycbench_cli PRIVATE epycbench_kernel_module_session)
 epycbench_enable_build_options(epycbench)
 epycbench_enable_warnings(epycbench)
 
-# Inspect the actual linked routines automatically. Unknown compiler shapes are
-# reported without blocking; only clear failures of the basic workload fail.
-set_property(TARGET epycbench APPEND PROPERTY LINK_DEPENDS
-    "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
-    "${PROJECT_SOURCE_DIR}/tools/kernel-object-audit/kernel_object_audit/framework.py")
-add_custom_command(TARGET epycbench POST_BUILD
-    COMMAND "${Python3_EXECUTABLE}" -B
-            "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
-            --executable "$<TARGET_FILE:epycbench>"
-            --output "${PROJECT_BINARY_DIR}/kernel-check.json"
-    COMMENT "Checking basic compiled Kernel behavior"
-    VERBATIM)
+# Modules own the timed loops. Loading and all host services remain in EpycBench.
+function(epycbench_add_kernel_module target source output directory)
+    add_library(${target} MODULE "${source}")
+    target_compile_features(${target} PRIVATE cxx_std_23)
+    target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    set_target_properties(${target} PROPERTIES PREFIX "" OUTPUT_NAME "${output}"
+        LIBRARY_OUTPUT_DIRECTORY "${directory}")
+    target_compile_options(${target} PRIVATE
+        "$<$<CXX_COMPILER_ID:GNU>:-fno-lto;-fno-tree-loop-vectorize;-fno-tree-slp-vectorize;-fno-unroll-loops>"
+        "$<$<CXX_COMPILER_ID:Clang>:-fno-lto;-fno-vectorize;-fno-slp-vectorize;-fno-unroll-loops>")
+    target_compile_definitions(${target} PRIVATE
+        EPYCBENCH_PLUGIN_BUILD_INFO="${EPYCBENCH_BUILD_PRESET}: ${EPYCBENCH_MANIFEST_COMPILER_FLAGS}, no-LTO,no-vectorization,no-SLP,no-unroll")
+    epycbench_enable_build_options(${target})
+    epycbench_enable_warnings(${target})
+endfunction()
+
+foreach(family IN ITEMS bandwidth latency)
+    set(module_target "epycbench_${family}_module")
+    epycbench_add_kernel_module(${module_target} "modules/${family}.cpp" "${family}"
+        "${PROJECT_BINARY_DIR}/modules")
+    set_property(TARGET ${module_target} APPEND PROPERTY LINK_DEPENDS
+        "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
+        "${PROJECT_SOURCE_DIR}/tools/kernel-object-audit/kernel_object_audit/framework.py")
+    add_custom_command(TARGET ${module_target} POST_BUILD
+        COMMAND "${Python3_EXECUTABLE}" -B "${PROJECT_SOURCE_DIR}/tools/check-kernel-code.py"
+            --module "$<TARGET_FILE:${module_target}>" --family "${family}"
+            --symbol epycbench_kernel_execute_v1
+            --output "${PROJECT_BINARY_DIR}/modules/${family}.kernel-check.json"
+        COMMENT "Checking ${family} module" VERBATIM)
+    add_dependencies(epycbench ${module_target})
+endforeach()
+
+if(BUILD_TESTING)
+    epycbench_add_kernel_module(epycbench_example_module "modules/example/kernel.cpp" "example-bandwidth"
+        "${PROJECT_BINARY_DIR}/test-modules")
+    epycbench_add_kernel_module(epycbench_incompatible_module "tests/support/kernel_plugin_incompatible.cpp" "incompatible"
+        "${PROJECT_BINARY_DIR}/test-modules")
+    epycbench_add_kernel_module(epycbench_duplicate_implementation_module
+        "tests/support/kernel_plugin_duplicate_implementation.cpp" "duplicate-implementation"
+        "${PROJECT_BINARY_DIR}/test-modules")
+    add_executable(epycbench_kernel_modules_tests tests/component/kernel_modules_test.cpp)
+    target_include_directories(epycbench_kernel_modules_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_kernel_modules_tests PRIVATE EpycBench::platform_linux Catch2::Catch2WithMain)
+    target_compile_definitions(epycbench_kernel_modules_tests PRIVATE
+        EPYCBENCH_TEST_MODULE_DIRECTORY="${PROJECT_BINARY_DIR}/modules"
+        EPYCBENCH_TEST_EXAMPLE_MODULE="$<TARGET_FILE:epycbench_example_module>"
+        EPYCBENCH_TEST_DUPLICATE_IMPLEMENTATION_MODULE="$<TARGET_FILE:epycbench_duplicate_implementation_module>"
+        EPYCBENCH_TEST_INCOMPATIBLE_MODULE="$<TARGET_FILE:epycbench_incompatible_module>")
+    add_dependencies(epycbench_kernel_modules_tests epycbench_bandwidth_module epycbench_latency_module
+        epycbench_example_module epycbench_incompatible_module epycbench_duplicate_implementation_module)
+    epycbench_enable_build_options(epycbench_kernel_modules_tests)
+    epycbench_enable_warnings(epycbench_kernel_modules_tests)
+    add_test(NAME EB-KRN.plugin-modules COMMAND epycbench_kernel_modules_tests)
+
+    add_executable(epycbench_kernel_module_session_tests tests/component/kernel_module_session_test.cpp)
+    target_include_directories(epycbench_kernel_module_session_tests PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_link_libraries(epycbench_kernel_module_session_tests PRIVATE epycbench_kernel_module_session)
+    target_compile_definitions(epycbench_kernel_module_session_tests PRIVATE
+        EPYCBENCH_TEST_MODULE_DIRECTORY="${PROJECT_BINARY_DIR}/modules")
+    add_dependencies(epycbench_kernel_module_session_tests epycbench_bandwidth_module epycbench_latency_module)
+    epycbench_enable_build_options(epycbench_kernel_module_session_tests)
+    epycbench_enable_warnings(epycbench_kernel_module_session_tests)
+    add_test(NAME EB-KRN.plugin-module-session COMMAND epycbench_kernel_module_session_tests)
+    set_tests_properties(EB-KRN.plugin-module-session PROPERTIES TIMEOUT 30)
+endif()
 
 if(BUILD_TESTING)
     find_program(EPYCBENCH_BASH_EXECUTABLE NAMES bash REQUIRED)
@@ -7018,6 +7087,16 @@ if(BUILD_TESTING)
     target_link_libraries(epycbench_results_incremental_event_pair_tests PRIVATE epycbench_results_producer_progress epycbench_results_final_document epycbench_benchmark_run_composition)
     target_link_libraries(epycbench_runtime_monitoring_production_admission_tests PRIVATE epycbench_results_producer_progress epycbench_results_process_subject epycbench_results_final_document epycbench_benchmark_run_composition epycbench_cli)
     target_compile_definitions(epycbench_runtime_monitoring_production_admission_tests PRIVATE EPYCBENCH_MONITORING_FACT_TEST=1 EPYCBENCH_PREPARATION_GRAPH_TEST=1)
+    target_compile_definitions(epycbench_runtime_monitoring_production_admission_tests PRIVATE
+        EPYCBENCH_TEST_MODULE_DIRECTORY="${PROJECT_BINARY_DIR}/modules"
+        EPYCBENCH_TEST_EXAMPLE_MODULE="$<TARGET_FILE:epycbench_example_module>")
+    add_dependencies(epycbench_runtime_monitoring_production_admission_tests
+        epycbench_bandwidth_module epycbench_latency_module epycbench_example_module)
+    add_test(NAME EB-KRN.plugin-pipeline
+        COMMAND "${Python3_EXECUTABLE}" -B "${PROJECT_SOURCE_DIR}/tests/tools/kernel_plugin_results_test.py"
+            "$<TARGET_FILE:epycbench>" "$<TARGET_FILE:epycbench_runtime_monitoring_production_admission_tests>"
+            "${PROJECT_BINARY_DIR}/modules" "$<TARGET_FILE:epycbench_example_module>")
+    set_tests_properties(EB-KRN.plugin-pipeline PROPERTIES TIMEOUT 600 LABELS "kernel;synthetic;non-hardware")
 endif()
 if(BUILD_TESTING)
     add_executable(epycbench_results_filesystem_journal_tests tests/unit/results_filesystem_journal_test.cpp)

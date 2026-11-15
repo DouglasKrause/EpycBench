@@ -1,4 +1,5 @@
 #include "runtime/frozen_observation_run.hpp"
+#include "runtime/kernel_module_session.hpp"
 
 #include "epycbench/kernel/registry.hpp"
 #include "memory/pairwise_memory_access.hpp"
@@ -345,6 +346,8 @@ auto prepare_memory(void* raw, const WorkerExecutionContext& worker,
             return callback_failure(std::move(input_kernel.error()));
         slot.bandwidth.emplace(
             kernel::PreparedSequentialReadBandwidth::prepare(std::move(*input_kernel)));
+        if (!bind_kernel_module(*slot.bandwidth, state.implementation))
+            return callback_failure(runtime_failure(PairwiseLifecyclePhase::preparation));
     } else {
         auto input_kernel = state.dependencies.kernel.latency_input(*state.latency_configuration,
                                                                     slot.owner->requested_region());
@@ -352,6 +355,8 @@ auto prepare_memory(void* raw, const WorkerExecutionContext& worker,
             return callback_failure(std::move(input_kernel.error()));
         slot.latency.emplace(
             kernel::PreparedDependentLoadLatency::prepare(std::move(*input_kernel)));
+        if (!bind_kernel_module(*slot.latency, state.implementation))
+            return callback_failure(runtime_failure(PairwiseLifecyclePhase::preparation));
     }
     return {};
 }
@@ -397,6 +402,8 @@ auto run_kernel(void* raw, const WorkerExecutionContext& worker,
             kernel::PreparedSequentialReadBandwidthChecksum::prepare(*slot.bandwidth);
         slot.bandwidth_verification.emplace(kernel::verify_sequential_read_bandwidth_checksum(
             checksum.expected_terminal(passes), terminal));
+        if (!module_verification_matches(*slot.bandwidth, *slot.bandwidth_verification))
+            return callback_failure(runtime_failure(PairwiseLifecyclePhase::active));
     } else {
         const auto steps = std::get<kernel::DependentLoadLatencyStepCount>(state.selected);
         auto seed = state.dependencies.kernel.prepare_latency_schedule_seed(
@@ -422,6 +429,8 @@ auto run_kernel(void* raw, const WorkerExecutionContext& worker,
         signal.complete();
         slot.latency_verification.emplace(kernel::verify_dependent_load_latency_terminal(
             state.verification->expected_terminal(*schedule), terminal));
+        if (!module_verification_matches(*slot.latency, *slot.latency_verification))
+            return callback_failure(runtime_failure(PairwiseLifecyclePhase::active));
     }
     return {};
 }

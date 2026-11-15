@@ -137,7 +137,7 @@ auto run(int argc,char* argv[],runtime::ControllerProcessProductionAuthority& au
     auto arguments=parse_arguments(std::span{words}.first(static_cast<std::size_t>(argc-2)));
     if(!arguments)return diagnostic(2);
     if(arguments->help) {
-        constexpr std::string_view help="Usage: epycbench run [--format yaml|json] SCENARIO\n";
+        constexpr std::string_view help="Usage: epycbench run [--module-dir DIRECTORY] [--format yaml|json] SCENARIO\n";
         try {output.write(help.data(),static_cast<std::streamsize>(help.size()));return output?0:3;}
         catch(...){return 3;}
     }

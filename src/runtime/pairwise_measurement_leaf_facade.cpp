@@ -184,7 +184,7 @@ auto PairwiseMeasurementLeafFacade::bandwidth_observation(
             PairwiseFailureCode::measurement_observation_empty_workers,
             PairwiseFailureOperation::measurement_observation_bandwidth_execute,
             PairwiseFailureReason::empty_workers);
-    if (implementation_id != kernel::KernelImplementationId::scalar_u64_sequential_v1)
+    if (implementation_id.family() != kernel::KernelFamily::bandwidth)
         return failed<measurement::SequentialReadBandwidthObservation>(
             PairwiseFailureCode::measurement_observation_implementation_mismatch,
             operation, PairwiseFailureReason::configuration_identity_mismatch,
@@ -221,7 +221,7 @@ auto PairwiseMeasurementLeafFacade::latency_observation(
             PairwiseFailureCode::measurement_observation_empty_workers,
             PairwiseFailureOperation::measurement_observation_latency_execute,
             PairwiseFailureReason::empty_workers);
-    if (implementation_id != kernel::KernelImplementationId::scalar_u64_random_cycle_v1)
+    if (implementation_id.family() != kernel::KernelFamily::latency)
         return failed<measurement::DependentLoadLatencyObservation>(
             PairwiseFailureCode::measurement_observation_implementation_mismatch,
             operation, PairwiseFailureReason::configuration_identity_mismatch,

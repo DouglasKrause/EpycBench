@@ -288,8 +288,8 @@ auto valid_capacity(const Json& value) -> bool {
 auto family(const runtime::detail::PairwiseHostCapacityRequestTranscript& request) -> std::optional<std::string> {
     const auto first = request.first().experiment().kernel_id();
     if (first != request.second().experiment().kernel_id()) return std::nullopt;
-    if (first == kernel::KernelId::sequential_read_bandwidth_v1) return "bandwidth";
-    if (first == kernel::KernelId::dependent_load_latency_v1) return "latency";
+    if (first.family() == kernel::KernelFamily::bandwidth) return "bandwidth";
+    if (first.family() == kernel::KernelFamily::latency) return "latency";
     return std::nullopt;
 }
 auto capacity_error() { return std::unexpected{failure(StartupCodecErrorCode::capacity_mismatch)}; }

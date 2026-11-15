@@ -4,8 +4,9 @@ EpycBench is a Linux C++23 command-line framework for AMD EPYC topology discover
 explicit CPU and NUMA memory placement, memory bandwidth and dependent-load
 latency measurements, and raw statistical results.
 
-This source distribution contains the application, build files, an automatic
-kernel checker, one editable Scenario and user documentation. The development test
+This source distribution contains the application, kernel module sources and
+interface header, build files, an automatic kernel checker, one editable Scenario
+and user documentation. The development test
 suite, internal project history and private qualification data are excluded.
 Building this distribution creates a new source/compiler configuration; it does
 not inherit another machine's qualification or performance conclusions.
@@ -33,6 +34,22 @@ Use `release-clang` for the Clang build. Canonical release presets avoid
 `BUILD_TESTING=ON`. An archive without Git metadata records an unknown source
 revision and a dirty source state; a Git checkout records its actual revision
 and status. Preserve the generated version information with your results.
+
+## Kernel modules
+
+The build also creates `build/release/modules/bandwidth.so` and `latency.so`.
+Keep the `modules/` directory beside the executable; existing settings and the
+demo use these modules automatically.
+
+Build an additional compatible module separately, copy its `.so` file into that
+directory, and restart EpycBench. Select its unique kernel ID in the settings file.
+`--module-dir PATH` selects another directory. The first interface supports the
+existing read-bandwidth and dependent-load-latency contracts.
+
+The [module documentation](modules/README.md) includes a standalone example that
+builds without recompiling EpycBench. Everything is supplied as source; no
+precompiled module is required. Saved-result validation and export work without
+the original modules installed.
 
 ## Start menu and demo
 

@@ -1400,11 +1400,7 @@ template<class T> auto write_scalar__bandwidth_measurement__block_id(PreparedCan
 template<class T> auto write_scalar__bandwidth_measurement__implementation_id(PreparedCanonicalWriter& writer, const T& value, std::string_view selected_branch_token) noexcept -> WriteResult {
   static_cast<void>(selected_branch_token);
   static_cast<void>(value);
-  switch (value) {
-  case epycbench::kernel::KernelImplementationId::scalar_u64_sequential_v1: return writer.append_json_string("scalar_u64_sequential_v1");
-  case epycbench::kernel::KernelImplementationId::scalar_u64_random_cycle_v1: return writer.append_json_string("scalar_u64_random_cycle_v1");
-  default: return writer.reject_domain();
-  }
+  return writer.append_json_string(epycbench::kernel::kernel_implementation_wire_token(value));
 }
 template<class T> auto write_bandwidth_configuration(PreparedCanonicalWriter& writer, const T& value, std::string_view selected_branch_token) noexcept -> WriteResult {
   static_cast<void>(selected_branch_token);
@@ -1583,11 +1579,7 @@ template<class T> auto write_scalar__latency_measurement__block_id(PreparedCanon
 template<class T> auto write_scalar__latency_measurement__implementation_id(PreparedCanonicalWriter& writer, const T& value, std::string_view selected_branch_token) noexcept -> WriteResult {
   static_cast<void>(selected_branch_token);
   static_cast<void>(value);
-  switch (value) {
-  case epycbench::kernel::KernelImplementationId::scalar_u64_sequential_v1: return writer.append_json_string("scalar_u64_sequential_v1");
-  case epycbench::kernel::KernelImplementationId::scalar_u64_random_cycle_v1: return writer.append_json_string("scalar_u64_random_cycle_v1");
-  default: return writer.reject_domain();
-  }
+  return writer.append_json_string(epycbench::kernel::kernel_implementation_wire_token(value));
 }
 template<class T> auto write_latency_configuration(PreparedCanonicalWriter& writer, const T& value, std::string_view selected_branch_token) noexcept -> WriteResult {
   static_cast<void>(selected_branch_token);

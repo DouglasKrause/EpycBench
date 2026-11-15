@@ -7,10 +7,10 @@
       "sha256": "149403011a446a495a0bbefdca742160ae6315a3b2500e32e6e689043f08d42b"
     },
     {
-      "bytes": 430905,
+      "bytes": 436875,
       "mode": "0644",
       "path": "CMakeLists.txt",
-      "sha256": "6f6872ee4ab5d025cc2f3048c5f158b0252197f8140de9d0eddfa621456b7393"
+      "sha256": "05d2a2f8312ea045a2459054685242eac9b90b89d04ca21f78dbe3f820198af6"
     },
     {
       "bytes": 1034,
@@ -25,10 +25,10 @@
       "sha256": "e1c7c0e4bf745f717465187a6ede82942f081fb51ef909836cfadab776e5d85f"
     },
     {
-      "bytes": 7525,
+      "bytes": 8360,
       "mode": "0644",
       "path": "README.md",
-      "sha256": "04fdb7a239bfee12b6e53cae951cc43e1f755248ae8843de55d9faa17c003bbd"
+      "sha256": "4785432831ff4ff3f9b7d02ea9c2644a7faa239dc45852087959f7898572b05d"
     },
     {
       "bytes": 2376,
@@ -79,10 +79,10 @@
       "sha256": "b75dd82b6e0aa0635d528a03555cb0ee334bae289610f4c9f0c5d1aa7c9a708e"
     },
     {
-      "bytes": 1783,
+      "bytes": 2099,
       "mode": "0644",
       "path": "docs/QUALIFICATION.md",
-      "sha256": "ab7b0aaed996af5761f569caffabe310d1a5348220b69bc3ae0c9fb9e0d1984c"
+      "sha256": "4d64fba6ecf770e9f19047c824beefff04456cf12d826df4dc1e5e06342b9119"
     },
     {
       "bytes": 1698,
@@ -151,22 +151,34 @@
       "sha256": "5ec13bad96b983f848bbb08146289fc1ae47a5b7fc2d5e78cd77bb853d1ef6d8"
     },
     {
-      "bytes": 10649,
+      "bytes": 10902,
       "mode": "0644",
       "path": "include/epycbench/kernel/dependent_load_latency.hpp",
-      "sha256": "dd8a568f138f9bfc9609fdecb30989b7a3ddcfe9b3c41251e7bfe12f2ae9db9b"
+      "sha256": "1cf364477adfff91b61b546e2c3deda57cb79c9922f37c53a2e99e8b6a752a68"
     },
     {
-      "bytes": 1425,
+      "bytes": 4856,
       "mode": "0644",
       "path": "include/epycbench/kernel/descriptor.hpp",
-      "sha256": "be624f9196b0cfd755f790ecc659c3efa0094f7a0e713bf3336c9de71fa228e6"
+      "sha256": "97b302fe219aa9b7008801df726cf5ca4b918283abdb53b18a35fdaac93c02d7"
     },
     {
-      "bytes": 407,
+      "bytes": 2503,
+      "mode": "0644",
+      "path": "include/epycbench/kernel/detail/memory_work.hpp",
+      "sha256": "4f54772c3b81706f01e4b4ee059ad7aa55f948affb403f00eaf108cd430a9780"
+    },
+    {
+      "bytes": 2707,
       "mode": "0644",
       "path": "include/epycbench/kernel/kernel_id.hpp",
-      "sha256": "53c5d04f2ecb5a6a20ce1cd3fb5325377bc2065a11fa8fa33879132d8ad98dd2"
+      "sha256": "7973410286fdb5ad2a8867b038ad3546b8dc4b01d41f3b68d8387b31d476ebcd"
+    },
+    {
+      "bytes": 2159,
+      "mode": "0644",
+      "path": "include/epycbench/kernel/plugin.h",
+      "sha256": "6f892ad8cbec2b6987e8aea4d3eddae0fdf67efd9403ba8ad5b74ceb9c85993b"
     },
     {
       "bytes": 5811,
@@ -175,16 +187,16 @@
       "sha256": "a58e0523d010bd9802084b60aedb10a76e90a606a37b4f9579f7d7a233144212"
     },
     {
-      "bytes": 219,
+      "bytes": 640,
       "mode": "0644",
       "path": "include/epycbench/kernel/registry.hpp",
-      "sha256": "f0a5c26819b5b3fb620aec955dc9fd60d46499a669f4292dc5542b780589d22f"
+      "sha256": "865bef1d330e80d468e67c4daa50c04f4518c9b04e8acd5ee68cb7dfe7570dc6"
     },
     {
-      "bytes": 10293,
+      "bytes": 10621,
       "mode": "0644",
       "path": "include/epycbench/kernel/sequential_read_bandwidth.hpp",
-      "sha256": "94fee0636e8c0a6cd4057203c8ad46d68fd8bfdc3cb646bc5e8d5634fa603524"
+      "sha256": "86d6ba61260c63375e017ca582af296f505d572d3da377cf00568dc37b0e19ed"
     },
     {
       "bytes": 5118,
@@ -913,16 +925,52 @@
       "sha256": "a74444121d50dca0c90f27e893133b7a34625627d0eec2c0964d867e924c2381"
     },
     {
+      "bytes": 4156,
+      "mode": "0644",
+      "path": "modules/README.md",
+      "sha256": "0a15232e49de9fe9466ee3f30ef7ae74ef7eba71598ac82bd571afbf7a2a1e09"
+    },
+    {
+      "bytes": 1021,
+      "mode": "0644",
+      "path": "modules/bandwidth.cpp",
+      "sha256": "09c033527c331d1f4d2a21bf4cf3d427e2c6c79c42ac01112fd7257273252eb2"
+    },
+    {
+      "bytes": 2034,
+      "mode": "0644",
+      "path": "modules/example/CMakeLists.txt",
+      "sha256": "ef19ce66da878f89de9ee62c62f4cb3e01d9854b2e02d19a4aa9bc32cf75cdcd"
+    },
+    {
+      "bytes": 2083,
+      "mode": "0644",
+      "path": "modules/example/kernel.cpp",
+      "sha256": "166b3037b3b6ab368c88c7e38449da0bf0eb609e5776e0044a9978453d38eae9"
+    },
+    {
+      "bytes": 1008,
+      "mode": "0644",
+      "path": "modules/latency.cpp",
+      "sha256": "0131842160eddec6453b4da01d2af84bca848d1fb4cb1e91dd5da9a2d6967b3a"
+    },
+    {
+      "bytes": 1269,
+      "mode": "0644",
+      "path": "modules/module_support.hpp",
+      "sha256": "739d2b5d2646c0ed1bf0354f945e1f7f873f27441555dce6ac07b8997dbce938"
+    },
+    {
       "bytes": 1946,
       "mode": "0644",
       "path": "src/build_manifest.cpp",
       "sha256": "49c535423d66b6a36661b0f0c0ff5804e36a10179fe5cc4221204465d5ccd573"
     },
     {
-      "bytes": 3508,
+      "bytes": 4862,
       "mode": "0644",
       "path": "src/cli/application.cpp",
-      "sha256": "e954a79f4eceda7e4b9aadf93db8392168f77ade1a2abfa0df9101c5423bd84a"
+      "sha256": "d58acf5ca29d1642029205c589b9023fa8fdb403887f265ceb002ec9a9930d7a"
     },
     {
       "bytes": 462,
@@ -931,10 +979,10 @@
       "sha256": "86ccd313beaeb58e2584c92e64e6bd8d03e64d08356b9dcb4854681484d244b5"
     },
     {
-      "bytes": 108734,
+      "bytes": 108759,
       "mode": "0644",
       "path": "src/cli/benchmark_run_command.cpp",
-      "sha256": "83ca12cdc986781b5cb1f0953120312589c3e991d1dd25dc54f4ab7f02992885"
+      "sha256": "ebed4c201e96bb2f27710a4ae628d4cfa45c2e9f9ced100e1dfe5af86f41166a"
     },
     {
       "bytes": 11232,
@@ -985,10 +1033,10 @@
       "sha256": "bd888476158d02127ca2bdcd826b5193d5a88ea8d51e3bf9eeb39808d2013c8c"
     },
     {
-      "bytes": 22813,
+      "bytes": 23107,
       "mode": "0644",
       "path": "src/cli/monitoring_q0b_command.cpp",
-      "sha256": "b233ddb9b40d198971ccf22a9051825ec1fbe23cfeb50d070c3b8ad506d318d7"
+      "sha256": "787bf3a10b6e1fbe59794120f1ac48d273f6344f1a15c0cd00551170fbb6c00c"
     },
     {
       "bytes": 1574,
@@ -1201,10 +1249,10 @@
       "sha256": "202749bf491076ab8e73924c12121c1701bf78f54e1ad17b924381a5e3e8b070"
     },
     {
-      "bytes": 1323,
+      "bytes": 1255,
       "mode": "0644",
       "path": "src/kernel/dependent_load_latency_execute.cpp",
-      "sha256": "5b2af06d3707551e6e2aaae33e6415f63a2d048e51dc1efe70c8b987337c7093"
+      "sha256": "5c67a60388a694553922b05038ebb6741b3c9544fdf45ec68166c94bd2228574"
     },
     {
       "bytes": 2513,
@@ -1231,10 +1279,10 @@
       "sha256": "ee9f01469694d25f7ae577d14f50272384c0ee66dfa992982236e1903fee48a7"
     },
     {
-      "bytes": 6271,
+      "bytes": 7076,
       "mode": "0644",
       "path": "src/kernel/kernel_contracts.cpp",
-      "sha256": "779793fcdda3e9299e317819be7f65a85fd43e842efc69ff6437daaa418d1ec5"
+      "sha256": "0e0fe771135cd9fd6f47609d24ce21120efbe03906a9a781e22a1cb7142d5f63"
     },
     {
       "bytes": 3838,
@@ -1261,10 +1309,10 @@
       "sha256": "02f9a603fd59b11ae431aa59188d34a20dbb5e5f766d38efd335e16ed98261c8"
     },
     {
-      "bytes": 2106,
+      "bytes": 4319,
       "mode": "0644",
       "path": "src/kernel/registry.cpp",
-      "sha256": "f96247a25c0d007e343cb78d82b1832690b3ae07abd58876e445236ca64a8acd"
+      "sha256": "e1a6e0fad3bdd83e7e7a7b0589ec45c89e0705d6bf48f964a9826cdb845b07d0"
     },
     {
       "bytes": 2508,
@@ -1279,10 +1327,10 @@
       "sha256": "92087ddc329e0cf5ee49314e8cc56fcfe5bd0b7867b0c5dc572d801b7ac2c05a"
     },
     {
-      "bytes": 3090,
+      "bytes": 1247,
       "mode": "0644",
       "path": "src/kernel/sequential_read_bandwidth_execute.cpp",
-      "sha256": "6e9e34f203b9ba5f8ea65196830a02723dde967f49c96098c4032b8c26edc149"
+      "sha256": "5d84604c1782d8cdd88333511ef1aa9cab65877bb393b2860d8cc8b58658444a"
     },
     {
       "bytes": 2780,
@@ -1297,10 +1345,10 @@
       "sha256": "21fabb5e094103f4694bffe852ccf00b5b28aee46b7ea34092f51501eef121e8"
     },
     {
-      "bytes": 3931,
+      "bytes": 4106,
       "mode": "0644",
       "path": "src/main.cpp",
-      "sha256": "fc7bfbf3e03fcdcf5dd7975c2bed820f997ba8eb5ab16c0712526ee256003a7a"
+      "sha256": "178c16da00b5cb304c34b85b5171d99931e43cba114214738cc610f5b64b573a"
     },
     {
       "bytes": 4783,
@@ -1327,10 +1375,10 @@
       "sha256": "3282ed908398f3b2b47ed7841fdfec0f3cab3ab36eaf5c861e9464242eb94e6b"
     },
     {
-      "bytes": 12249,
+      "bytes": 12213,
       "mode": "0644",
       "path": "src/measurement/observation.cpp",
-      "sha256": "1783ac722b44218430b0460769e558f8cd65ab7c43ed9aa779c0fdcb71ca864a"
+      "sha256": "d0125e7613df036ae256bfcb2c5921b276039e4d8f8371c0c811ee523f25ebfc"
     },
     {
       "bytes": 6054,
@@ -1735,10 +1783,10 @@
       "sha256": "15f630b84b805fc0ffb8a43dfb59a7fb9c96ffd5b371c1672cdcf7294383e7f2"
     },
     {
-      "bytes": 223806,
+      "bytes": 224535,
       "mode": "0644",
       "path": "src/monitoring/host_frozen_source_launch.cpp",
-      "sha256": "b335216f5616f8222a86020dbba9826280be29e3f70265ee6d37d04c998679c0"
+      "sha256": "d83dfa600a12ff7e9a4de43e9fe339a878f81f349f4c6e9193e4fe10cae95d8d"
     },
     {
       "bytes": 13007,
@@ -1777,10 +1825,10 @@
       "sha256": "2ba4dec7a808cf2914ac248ea8178e8cd2657670a329a3bc62742094927b0978"
     },
     {
-      "bytes": 9923,
+      "bytes": 10256,
       "mode": "0644",
       "path": "src/monitoring/host_q0b_backend_driver.cpp",
-      "sha256": "07e0de3652e080c0179092e72a6651283f0fc1dcf0bcc2ab7d28e23195757757"
+      "sha256": "728cf35ca363fe72044d4a39178ce82934a0e51d3974e008430bd8f3c1333229"
     },
     {
       "bytes": 2991,
@@ -3421,6 +3469,30 @@
       "sha256": "56bf57cc07b45787190cc5ebb50538d3a54458832b72fcd1154c9d7d0cd95350"
     },
     {
+      "bytes": 599,
+      "mode": "0644",
+      "path": "src/platform_linux/kernel_module_environment.cpp",
+      "sha256": "3ddbab55e5892c0a365f31f52af89799d925306a502351b1b1c688f666b8c986"
+    },
+    {
+      "bytes": 315,
+      "mode": "0644",
+      "path": "src/platform_linux/kernel_module_environment.hpp",
+      "sha256": "b3c154e9dbd1a59a8fd061ca69d5a428659c3cc4fc3dc08e957c2e7c3a7f8e90"
+    },
+    {
+      "bytes": 6836,
+      "mode": "0644",
+      "path": "src/platform_linux/kernel_modules.cpp",
+      "sha256": "470680fd6a0b4b945406ac4d7630df9e1e847ce3f33206e90fd7be81a1896f77"
+    },
+    {
+      "bytes": 2269,
+      "mode": "0644",
+      "path": "src/platform_linux/kernel_modules.hpp",
+      "sha256": "18a138c8b7c88a5fed5107bfb9ee7f700eb66196175d2dcb73753cc2f1a7a42d"
+    },
+    {
       "bytes": 24585,
       "mode": "0644",
       "path": "src/platform_linux/local_ipc.cpp",
@@ -3709,10 +3781,10 @@
       "sha256": "9176bcd5b4f398098db03b2ab56ce57f5775141b34ec3edf02421f95db6a392c"
     },
     {
-      "bytes": 115404,
+      "bytes": 116475,
       "mode": "0644",
       "path": "src/results/final_document.cpp",
-      "sha256": "17c71310783c875ac52c375508ef814fbec6cea153faad63e41549b30861b43e"
+      "sha256": "540c0e9094fec46d3b3085b34d65693e4af347a1ca6322bf2090d0ebf4a1790d"
     },
     {
       "bytes": 4054,
@@ -3781,22 +3853,22 @@
       "sha256": "e7358a963f5cc87b45af62692b0abcdc5c38652ed98dd2029b41292c970aeea9"
     },
     {
-      "bytes": 179744,
+      "bytes": 181428,
       "mode": "0644",
       "path": "src/results/incremental_event_pair.cpp",
-      "sha256": "7d5207c1d2556d46f1da0a347749acaf8b43f1a8f161b8198bc76982c56f75ce"
+      "sha256": "a16dc9a7ae02855ea9d1f130045e8a67eacd11ed50d7e548089d3105dae3436a"
     },
     {
-      "bytes": 5671,
+      "bytes": 5724,
       "mode": "0644",
       "path": "src/results/incremental_event_pair.hpp",
-      "sha256": "d4aa71412d121fa39635da6e857d40a199390a5ea1f4c3f637527329dec67bc0"
+      "sha256": "d9367ba7b67ccb09ed3a35d3d6f944fad5f137f814c939496d1ba8a064c60611"
     },
     {
-      "bytes": 52745,
+      "bytes": 55374,
       "mode": "0644",
       "path": "src/results/incremental_event_preparation.cpp",
-      "sha256": "a4516ff64667e63fb66ebf3d5d536d5856bc3cc364ec54f77601a98b3389f4c7"
+      "sha256": "ffde3543b10ea3fc74ac7f718eb8a2e9a7627a705495eeaebb32936e38fc8698"
     },
     {
       "bytes": 2182,
@@ -4027,16 +4099,16 @@
       "sha256": "ff551f8c593c54ca87755a266aacf6bbc99c0c82bfe98928adf04b7c94e98fa1"
     },
     {
-      "bytes": 22911,
+      "bytes": 23227,
       "mode": "0644",
       "path": "src/results/private_build_object_association.cpp",
-      "sha256": "fb3e6a905cbf7bf7523ee67a2e6486371b8ebfc5fb63dbf6ab14c12fd9ded1c1"
+      "sha256": "37ebd42f2502cec932781cfb1939224b9e8e9fb88ab111bea3653ddd53a6879f"
     },
     {
-      "bytes": 3357,
+      "bytes": 3455,
       "mode": "0644",
       "path": "src/results/private_build_object_association.hpp",
-      "sha256": "57f384983070dde96c49353e4c509ef3efbfe98de72ade0c745aca3371fd84b1"
+      "sha256": "c8e0f817290dd9d3ed4d19c252abdbdcdf2a11c0413df7f7e1b0717d976d0e9a"
     },
     {
       "bytes": 52891,
@@ -4087,16 +4159,16 @@
       "sha256": "2040b85d540916e6cc4b1d1c6e0292f1db377eacd3135e95f6faf65592f3dcd9"
     },
     {
-      "bytes": 37992,
+      "bytes": 38964,
       "mode": "0644",
       "path": "src/results/private_execution_plan.cpp",
-      "sha256": "1abf2e3d62123c89caf757dd10bdf7b1740c3a8a72de27b7cfe9e65dc0293319"
+      "sha256": "1ace2be7ba2afa29c5c0373f11e33fd253bf43011225a4c910ec9589074f73e0"
     },
     {
-      "bytes": 4344,
+      "bytes": 4432,
       "mode": "0644",
       "path": "src/results/private_execution_plan.hpp",
-      "sha256": "48874bcbe47b9ebb371b0b7cb2699c49dc4f1a79952a5f3ee6a21a57332c2cd7"
+      "sha256": "7c4751f74a2b5b412731557146f178bcf5c0964879ce65e60d1785d34fb3685d"
     },
     {
       "bytes": 66363,
@@ -4123,22 +4195,22 @@
       "sha256": "a3292b25c4b1bddc33a15d1caa5bddb20aa5254ac8eefa8c8c575cbcc125a289"
     },
     {
-      "bytes": 15087,
+      "bytes": 17226,
       "mode": "0644",
       "path": "src/results/private_implementation_selection.cpp",
-      "sha256": "b6b21460bddae749844bcf85aabe4b9125cb073dcfbf49625cfff8bd7809b204"
+      "sha256": "247a0f9e56fc6e4e82b725f0a8adc0dd58943375379948d16946d869224dc9f0"
     },
     {
-      "bytes": 2824,
+      "bytes": 3132,
       "mode": "0644",
       "path": "src/results/private_implementation_selection.hpp",
-      "sha256": "5c50c72af4aa3ac9435aeae9db4e5bd7fffe8c353796194ad0eae586efd5c432"
+      "sha256": "ebd61ca27bedb293324e612ea3e360c871fdc8c884c7e47ccbbc44a28dbd38b5"
     },
     {
-      "bytes": 30499,
+      "bytes": 30489,
       "mode": "0644",
       "path": "src/results/private_kernel_dispatch_serialization.cpp",
-      "sha256": "938bbb05c450ec1290e273dc74a22fe4776629a92a9e117a69f8201efc84c642"
+      "sha256": "1203bde4f879566f4fbfc02a57d8339c2e2d24b2755ab7ef4ba71ab25e14e505"
     },
     {
       "bytes": 2688,
@@ -4207,10 +4279,10 @@
       "sha256": "423c422e9749a7edde0ade9616c3e1e15c71058acfd6d03a3dda3451e9783012"
     },
     {
-      "bytes": 65319,
+      "bytes": 65314,
       "mode": "0644",
       "path": "src/results/private_plan_composition.cpp",
-      "sha256": "60a54bb513ccdeb47756ec3dabaf589109ef7e763ed56bf1dfb3ea6d5c390941"
+      "sha256": "069093477c768ed28f22579c1a934d2e276a3e4c77beae66f109a79c21f9d478"
     },
     {
       "bytes": 3870,
@@ -4495,10 +4567,10 @@
       "sha256": "c668f28ff375aaf0d135a804d3d24733be0618f65dbeb63822d576ebbbea2536"
     },
     {
-      "bytes": 369527,
+      "bytes": 369749,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_prepared_direct_codec.cpp",
-      "sha256": "78c566c8fcb7d4306c5f4c99fc7dddcfede403ca3e957348283b88f4fe6cab1a"
+      "sha256": "9f8657fd0149ff09613aaa3e63f0cf19b53df93fcdb29d748536f2f0d863d53e"
     },
     {
       "bytes": 33331,
@@ -4516,7 +4588,7 @@
       "bytes": 104965,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_prepared_resources.generated.hpp",
-      "sha256": "7a324d8f3a8c973f9c2d8aa57ea74ee15075130970b61792f16949a77af2331c"
+      "sha256": "8f309f302e57fd1f1d3152e73f3980c3cf15d1fae92df1df3f32fc77db9d72a0"
     },
     {
       "bytes": 7203,
@@ -4531,10 +4603,10 @@
       "sha256": "3ab2361c0dd08876a50626c4eec2be555b6cb3e98714a65ac995344104cbf070"
     },
     {
-      "bytes": 690490,
+      "bytes": 689992,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_prepared_typed_sink.generated.inc",
-      "sha256": "29be78b3baf62b4cc9f94d9d3b8aa2ca0f45c9210fde411cd63f6572528a4bac"
+      "sha256": "34049163bcc6f1f185c556eea8f749bbb509b01cc7335a4dea82a8ad5f97a4e9"
     },
     {
       "bytes": 20345,
@@ -4549,16 +4621,16 @@
       "sha256": "451fb1adc2317dc236849ebd88063191352503312cc39ba8e460f2944123d281"
     },
     {
-      "bytes": 43029,
+      "bytes": 43623,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_capacity.cpp",
-      "sha256": "7d56fcbd78eb8bb49e1e8ebbb46ac0e371efdc33bbde55fae1355098e1fe4089"
+      "sha256": "4251d6494e30840a0051577b34567065a068631741dbf70ba0002eea4e17bdbf"
     },
     {
-      "bytes": 11383,
+      "bytes": 11713,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_capacity.hpp",
-      "sha256": "78f7387bb8b8c3d373c6949188ce6d3d2f1b1f6e4676cde2a185cec1e5f493ca"
+      "sha256": "5eeb47e86a4fdf2cbcbdc53ea4e714a2b6b1f245a796a29d2237deeb50200766"
     },
     {
       "bytes": 5243,
@@ -4621,16 +4693,16 @@
       "sha256": "3f3e4bc457329375c813394918c1639611782070b640fd39d1627232088fdc48"
     },
     {
-      "bytes": 431622,
+      "bytes": 431510,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_schema.generated.hpp",
-      "sha256": "0e198f390e40349e8751892359b8340ff653f5ba657eb7130b1276b19b95855b"
+      "sha256": "c96c8e6184ea15dda7cf1a78335631101804093758f611d5afecc0f77f1787a7"
     },
     {
       "bytes": 14105,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_source_projection.cpp",
-      "sha256": "084628e0ec71a7d75e64d3c014cfb06f930d3a22578c33ff35cc6c606d1c9668"
+      "sha256": "bdb792e0a1f6e5f9c895caba0a46221a79cb8bc925cdfb3fdd10b6c832a7a4c1"
     },
     {
       "bytes": 2555,
@@ -4639,10 +4711,10 @@
       "sha256": "bc988c8c069516f81efb6d6d3c57d6930655720a9bcf963fc5ddf81e6a273de6"
     },
     {
-      "bytes": 33295,
+      "bytes": 33284,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_startup_codec.cpp",
-      "sha256": "c09cc08ccb6c6814c1756f07693a439f5dd8e98852596da8f0bde4de71974910"
+      "sha256": "e03626767eddd4b3e481290f4155ac227472ba0997b1aecc74600dddac6bb03f"
     },
     {
       "bytes": 5978,
@@ -4651,10 +4723,10 @@
       "sha256": "448e1c8fc1040493f599d4d6e3ddf5f7a0f2a0b7435deef1f049652362a3bb90"
     },
     {
-      "bytes": 302975,
+      "bytes": 303153,
       "mode": "0644",
       "path": "src/runtime/finalized_evidence_wire_typed_reconstruction.cpp",
-      "sha256": "2fd3ee4cc77788cae23b749c0a184785e37962b8794b66acaa3efd096c04f7a8"
+      "sha256": "2b9b43d7099febcd0a6166a76c12f19c9184e01a992968e4744767394fb6afb6"
     },
     {
       "bytes": 14725,
@@ -4675,10 +4747,10 @@
       "sha256": "fb2cc00462ea8c89a370ae1000dfb009b2b21c477dcd1d150e7c54b31d51c487"
     },
     {
-      "bytes": 61996,
+      "bytes": 62711,
       "mode": "0644",
       "path": "src/runtime/frozen_observation_run.cpp",
-      "sha256": "323477589d13bffa76426011e64e1cb20fe088cae8f3579ffed32e53a092278c"
+      "sha256": "67c192dd59afb1754ff39ff817fc7d328a6e06e6359d4bb8277c9d672da5e38c"
     },
     {
       "bytes": 9204,
@@ -4693,10 +4765,10 @@
       "sha256": "ec5c2d5e7c2e7554b9ed9464b39ca718083588a0331b709294e3ba86117a12de"
     },
     {
-      "bytes": 31958,
+      "bytes": 31952,
       "mode": "0644",
       "path": "src/runtime/ipc/placement_request_construction_access.cpp",
-      "sha256": "dde7a5b018c8932c3cc4453bb7cb8c2ae2602708695ce69aca140d72ca5b685a"
+      "sha256": "a9316128c0fb829dabf97d0aee4777e88dca9aed04d4c384f0509907e9d5f61d"
     },
     {
       "bytes": 9095,
@@ -4709,6 +4781,18 @@
       "mode": "0644",
       "path": "src/runtime/ipc/protocol.cpp",
       "sha256": "98ae9b5a1d31db49f66c7ae66d7901d6288eefed1dd13d7e66857dca4c29669e"
+    },
+    {
+      "bytes": 7295,
+      "mode": "0644",
+      "path": "src/runtime/kernel_module_session.cpp",
+      "sha256": "633ea901e851347f7475d7dbaf9c3e9aef0b465d48fa7ef2ed4089951bfb5a45"
+    },
+    {
+      "bytes": 2206,
+      "mode": "0644",
+      "path": "src/runtime/kernel_module_session.hpp",
+      "sha256": "a42fe4f01a6f621d790514465783ba26a06bf3074008f4c6925d0196e20e5dc6"
     },
     {
       "bytes": 6147,
@@ -4753,10 +4837,10 @@
       "sha256": "5c90074a790bafcb5c3bd69e0b9a1b709e9250b2a664323aadc1c4ed86c957c6"
     },
     {
-      "bytes": 37489,
+      "bytes": 37467,
       "mode": "0644",
       "path": "src/runtime/pairwise_kernel_leaf_facade.cpp",
-      "sha256": "4e12e6d69135e904cc31d090fae4713d0f283be06bd85316e98e36ef2b12b5b3"
+      "sha256": "7d70565e906ecdd54e4ee626af0cc5e6609762c890cfd1418c2b8b304ab9c6eb"
     },
     {
       "bytes": 8038,
@@ -4765,10 +4849,10 @@
       "sha256": "865840827f578eaa252b1ee23ffd8b9b73083100c82ddb654b880b8bd5b07bee"
     },
     {
-      "bytes": 34010,
+      "bytes": 33974,
       "mode": "0644",
       "path": "src/runtime/pairwise_measurement_leaf_facade.cpp",
-      "sha256": "7ce2ea4533ccc4b7f3762f6822ef37df22ae50111b5dd387cf889b108fd62524"
+      "sha256": "1c651a09ed1cfa36229f1c8496de4d9dfc29e0823c979630c2955ebaf47a57d2"
     },
     {
       "bytes": 14014,
@@ -4873,10 +4957,10 @@
       "sha256": "f4d8266febe89a48ef349911786895bf970fc606494d48dff4471f1d14ee73cb"
     },
     {
-      "bytes": 40906,
+      "bytes": 40861,
       "mode": "0644",
       "path": "src/runtime/pairwise_preparation_graph.cpp",
-      "sha256": "49779c2502e66d4da545da7467d0cf17bafe35795957770e0512b4f71d699f91"
+      "sha256": "3424a637be403485f22ad294cbc265a1c6d4dbb48a7344fae1b806df37850616"
     },
     {
       "bytes": 12185,
@@ -4939,10 +5023,10 @@
       "sha256": "39d766fe1d955ca281ee807866ee5ca059504994523e3e969d0517a63cb4aade"
     },
     {
-      "bytes": 93416,
+      "bytes": 94302,
       "mode": "0644",
       "path": "src/runtime/pairwise_production_operations_support.cpp",
-      "sha256": "47db04343348a8996ce0f10a667daefb9ada87f2adec45cdc7265ae30fa1353a"
+      "sha256": "e9b25f88be5ccf295aa99ca52ee42ba3924f445068ac5eb964219d50c3d57909"
     },
     {
       "bytes": 1951,
@@ -5047,10 +5131,10 @@
       "sha256": "a708ae04dd7e5dceae672375c5f76c5dd4760c1a542f52b8e5cf5ab9805a2625"
     },
     {
-      "bytes": 106746,
+      "bytes": 107889,
       "mode": "0644",
       "path": "src/runtime/pairwise_typed_production_owner_transaction.cpp",
-      "sha256": "7ae6459e975e9685d29ec21533dd2c34ced233cd06e2823ac00795cecdcf7aaa"
+      "sha256": "b7c37db26a16c150961f1a12fc2fcb824c20c18706eb891e934d1a52e47b0439"
     },
     {
       "bytes": 9999,
@@ -5173,10 +5257,10 @@
       "sha256": "645b82b4637534a2cded8912adc86b42b8fb3d04296a8c27fb2d7b8a36c4ea1d"
     },
     {
-      "bytes": 6992,
+      "bytes": 7231,
       "mode": "0644",
       "path": "src/runtime/pairwise_v2_production_entry.cpp",
-      "sha256": "d4febf66f90752c55d7e9ff4d3318e97893d153f5aedc7026198226b337cf172"
+      "sha256": "b9b42ef1207252b8e6d57d2f8b514366601dce51661add5b03ff47dce8203656"
     },
     {
       "bytes": 1523,
@@ -5185,10 +5269,10 @@
       "sha256": "29a7ec6c52add6aacd556fca708c2aedd0ac7399439c87c7166721af8b85fbb2"
     },
     {
-      "bytes": 52706,
+      "bytes": 52814,
       "mode": "0644",
       "path": "src/runtime/pairwise_v2_progress.cpp",
-      "sha256": "cb3a585b95ab11396c8668af25315478ee8ae6836d6cf26eb7a73419ba325de6"
+      "sha256": "403d119a760287b163eb186ea20d679ba568fa0e4312b088d478fd80f2440cfa"
     },
     {
       "bytes": 12207,
@@ -5557,10 +5641,10 @@
       "sha256": "4feccf2e025811c7aea75ad89eef78c33780d228dbb6208f26283e482ef25f24"
     },
     {
-      "bytes": 30003,
+      "bytes": 29987,
       "mode": "0644",
       "path": "src/scenario/retained_plan_projection.cpp",
-      "sha256": "7e6fe20ae240548fb5d3077946034dcb4e4c326ce327ce09da7fa33da3e68ebb"
+      "sha256": "eeb5408fd12de154a218ba4deaecb306d3e7faa62b6d40cdadc2321119a37bfc"
     },
     {
       "bytes": 3406,
@@ -5611,10 +5695,10 @@
       "sha256": "9e59a4c831edf4213f3738ddbdf3b8f843f1d673afeb8c441ac2c3879d30d817"
     },
     {
-      "bytes": 16954,
+      "bytes": 16886,
       "mode": "0644",
       "path": "src/scenario/scenario_v1_kernels.cpp",
-      "sha256": "48cf240d0161043db0ec1a6312392d475ef7ff95af9b30d199e97a27b4091ea8"
+      "sha256": "d05133fe995d0511954d0ca7b5924dcba17562ccd22187f24d63cac3dfbf67ee"
     },
     {
       "bytes": 663,
@@ -5953,10 +6037,10 @@
       "sha256": "130c115c0728c42b5e3698d5365c15821abf49099f2805117f13fc1ff0a30586"
     },
     {
-      "bytes": 9021,
+      "bytes": 9999,
       "mode": "0644",
       "path": "tools/check-kernel-code.py",
-      "sha256": "b4ba001a206992b58ba9b778d455ae2c80e7dfa0ecd64b4ae75eae0bde5f20e2"
+      "sha256": "cbbf7b0f68d69f9a4e557ff6ea66f01bda59bb923b37609b0eb0734de8f58cfc"
     },
     {
       "bytes": 179,

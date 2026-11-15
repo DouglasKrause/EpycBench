@@ -237,20 +237,20 @@ auto PairwiseKernelLeafFacade::latency_configuration(
 auto PairwiseKernelLeafFacade::validate_configuration_identity(
     kernel::KernelId id, const kernel::KernelConfiguration& configuration) const noexcept
     -> std::expected<void, PairwiseKernelFailure> {
-    if (id == kernel::KernelId::sequential_read_bandwidth_v1 &&
+    if (id.family() == kernel::KernelFamily::bandwidth &&
         !std::holds_alternative<kernel::SequentialReadBandwidthConfig>(configuration))
         return failed<void>(PairwiseFailureCode::kernel_contract_invalid,
                             PairwiseFailureOperation::kernel_contract,
                             PairwiseFailureReason::configuration_identity_mismatch,
                             bandwidth_identity(PairwiseKernelPhase::none));
-    if (id == kernel::KernelId::dependent_load_latency_v1 &&
+    if (id.family() == kernel::KernelFamily::latency &&
         !std::holds_alternative<kernel::DependentLoadLatencyConfig>(configuration))
         return failed<void>(PairwiseFailureCode::kernel_contract_invalid,
                             PairwiseFailureOperation::kernel_contract,
                             PairwiseFailureReason::configuration_identity_mismatch,
                             latency_identity(PairwiseKernelPhase::none));
-    if (id != kernel::KernelId::sequential_read_bandwidth_v1 &&
-        id != kernel::KernelId::dependent_load_latency_v1)
+    if (id.family() != kernel::KernelFamily::bandwidth &&
+        id.family() != kernel::KernelFamily::latency)
         return failed<void>(PairwiseFailureCode::kernel_contract_invalid,
                             PairwiseFailureOperation::kernel_contract,
                             PairwiseFailureReason::unknown_kernel_identity,

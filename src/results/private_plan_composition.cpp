@@ -422,7 +422,7 @@ struct Association {
         need(text(pointer(binding.source_pointer)) == binding.workload_id &&
              text(field(intent, "workload")) == binding.workload_id);
         const auto found = view.workloads.find(binding.workload_id); need(found != view.workloads.end());
-        const bool latency = found->second.kernel_id == kernel::KernelId::dependent_load_latency_v1;
+        const bool latency = found->second.kernel_id.family() == kernel::KernelFamily::latency;
         const auto working_set = std::visit([](const auto& value) {
             if constexpr (requires { value.working_set(); }) return value.working_set();
             else return value.working_set_per_worker();

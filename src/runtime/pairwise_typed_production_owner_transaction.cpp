@@ -1,4 +1,5 @@
 #include "runtime/pairwise_v2_progress.hpp"
+#include "runtime/kernel_module_session.hpp"
 #include "runtime/pairwise_typed_production_binding_preparation.hpp"
 #include "runtime/pairwise_production_run_core.hpp"
 #include "runtime/pairwise_measurement_leaf_facade.hpp"
@@ -658,6 +659,8 @@ class PairwiseTypedOwnerTransaction final {
                     *destination.bandwidth);
             const auto verification = kernel::verify_sequential_read_bandwidth_checksum(
                 checksum.expected_terminal(state.work), terminal);
+            if (!module_verification_matches(*destination.bandwidth, verification))
+                return fail(transaction_failure(PairwiseFailureReason::contained_exception));
             destination.last_work_units = state.work.value();
             destination.last_logical_bytes =
                 accounted->logical_bytes_read().value();
@@ -727,6 +730,8 @@ class PairwiseTypedOwnerTransaction final {
             const auto verification = kernel::verify_dependent_load_latency_terminal(
                 state.self->latency_verification_->expected_terminal(*schedule),
                 terminal);
+            if (!module_verification_matches(*destination.latency, verification))
+                return fail(transaction_failure(PairwiseFailureReason::contained_exception));
             destination.last_work_units = state.work.value();
             destination.last_logical_bytes = 0U;
             destination.last_expected_terminal =
@@ -802,6 +807,8 @@ class PairwiseTypedOwnerTransaction final {
                 const auto verification =
                     kernel::verify_sequential_read_bandwidth_checksum(
                         checksum.expected_terminal(state.work), terminal);
+                if (!module_verification_matches(*owner.bandwidth, verification))
+                    return fail(transaction_failure(PairwiseFailureReason::contained_exception));
                 owner.last_logical_bytes = accounted->logical_bytes_read().value();
                 owner.last_bandwidth_work.emplace(*accounted);
                 owner.last_expected_terminal = verification.expected().value();
@@ -833,6 +840,8 @@ class PairwiseTypedOwnerTransaction final {
                     kernel::verify_dependent_load_latency_terminal(
                         state.self->latency_verification_->expected_terminal(*schedule),
                         terminal);
+                if (!module_verification_matches(*owner.latency, verification))
+                    return fail(transaction_failure(PairwiseFailureReason::contained_exception));
                 owner.last_expected_terminal = verification.expected().value();
                 owner.last_actual_terminal = verification.actual().value();
                 owner.last_verification_matched = verification.matched();
@@ -1141,6 +1150,8 @@ class PairwiseTypedOwnerTransaction final {
                         PairwiseEvidenceFailure{std::move(input.error())}};
                 destination.bandwidth.emplace(
                     kernel::PreparedSequentialReadBandwidth::prepare(std::move(*input)));
+                if (!bind_kernel_module(*destination.bandwidth, implementation_id_))
+                    return std::unexpected{transaction_failure(PairwiseFailureReason::contained_exception)};
             }
             return {};
         };
@@ -1157,6 +1168,8 @@ class PairwiseTypedOwnerTransaction final {
                         PairwiseEvidenceFailure{std::move(input.error())}};
                 destination.latency.emplace(
                     kernel::PreparedDependentLoadLatency::prepare(std::move(*input)));
+                if (!bind_kernel_module(*destination.latency, implementation_id_))
+                    return std::unexpected{transaction_failure(PairwiseFailureReason::contained_exception)};
             }
             return {};
         };

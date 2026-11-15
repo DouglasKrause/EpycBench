@@ -39,8 +39,8 @@ auto number(const Json& value,Work& work)->U{work.test(value.is_number_unsigned(
 auto boolean(const Json& value,Work& work)->bool{work.test(value.is_boolean(),Error::policy);return value.get<bool>();}
 auto family(const sel::Workload& row,Work& work)->Z{
     for(Z index=0;index<2;++index){work.debit();
-        work.debit();if(row.semantic!=(index==0?kernel::KernelId::sequential_read_bandwidth_v1:kernel::KernelId::dependent_load_latency_v1))continue;
-        work.test(row.implementation==(index==0?kernel::KernelImplementationId::scalar_u64_sequential_v1:kernel::KernelImplementationId::scalar_u64_random_cycle_v1),Error::object_evidence);return index;
+        work.debit();if(row.semantic.family()!=(index==0?kernel::KernelFamily::bandwidth:kernel::KernelFamily::latency))continue;
+        work.test(row.implementation.family()==row.semantic.family(),Error::object_evidence);return index;
     }throw Error::object_evidence;
 }
 void roots(Roots& out,const H& input,Work& work){
@@ -192,6 +192,7 @@ void endpoint(Sink& out,const Roots& view,const Pair& pair,bool baseline){
     out.raw("]");
 }
 void semantic(Sink& out,const T& state,const Roots& view,const H& child,const std::array<bool,2>& used){
+    const bool plugins=sel::detail::uses_plugins(view.workloads);
     out.raw("{\"build_manifest_digest\":\"");out.digest(view.manifest->digest()->value());out.raw("\",\"implementation_evidence\":[");bool first=true;
     for(Z family_index=0;family_index<2;++family_index){out.work.debit();if(!used[family_index]||!child.approval(family_index))continue;if(!first)out.raw(",");first=false;
         const auto* manifest=child.approval(family_index)->manifest();
@@ -205,6 +206,19 @@ void semantic(Sink& out,const T& state,const Roots& view,const H& child,const st
     }
     out.raw("],\"implementations\":[");
     for(Z row=0;row<view.workloads.size();++row){out.work.debit();if(row)out.raw(",");const auto& workload=view.workloads[row];out.raw("[");out.quoted(workload.workload_id);out.raw(",\"");out.raw(kernel::kernel_id_token(workload.semantic));out.raw("\",\"");out.raw(kernel::kernel_implementation_id_token(workload.implementation));out.raw("\"]");}
+    if(plugins) {
+        out.raw("],\"modules\":[");
+        for(Z row=0;row<view.workloads.size();++row) {
+            out.work.debit();if(row)out.raw(",");const auto& workload=view.workloads[row];
+            if(!workload.module){out.raw("null");continue;}
+            out.raw("{\"build_info_hex\":");out.quoted(workload.module->build_info);
+            out.raw(",\"family\":\"");out.raw(workload.semantic.family()==kernel::KernelFamily::bandwidth?"bandwidth":"latency");
+            out.raw("\",\"file_sha256\":\"");out.raw(workload.module->file_sha256);
+            out.raw("\",\"implementation_id\":\"");out.raw(kernel::kernel_implementation_id_token(workload.implementation));
+            out.raw("\",\"kernel_id\":\"");out.raw(kernel::kernel_id_token(workload.semantic));
+            out.raw("\",\"version_hex\":");out.quoted(workload.module->version);out.raw(",\"workload_hex\":");out.quoted(workload.workload_id);out.raw("}");
+        }
+    }
     out.raw("],\"monitoring_presence\":\"");out.raw(state.counts.monitoring_present?"supplied":"not_supplied");out.raw("\",\"pairs\":[");
     for(Z row=0;row<state.pairs.size();++row){out.work.debit();if(row)out.raw(",");const auto& pair=state.pairs[row];
         out.raw("{\"baseline\":");endpoint(out,view,pair,true);out.raw(",\"candidate\":");endpoint(out,view,pair,false);out.raw(",\"experiment\":");
@@ -214,12 +228,12 @@ void semantic(Sink& out,const T& state,const Roots& view,const H& child,const st
         out.raw(",\"workload_index\":");out.number(pair.workload_index);out.raw("}");
     }
     out.raw("],\"policy\":{\"build_evidence\":\"");
-    out.raw(view.bindings.empty()||child.approval(0)||child.approval(1)?"supplied-manifest-and-bound-family-objects":"build-manifest");
+    out.raw(plugins?"build-manifest-and-recorded-modules":view.bindings.empty()||child.approval(0)||child.approval(1)?"supplied-manifest-and-bound-family-objects":"build-manifest");
     out.raw("\",\"current_qualification\":\"not_asserted\",\"production_admission\":\"deferred\",\"schedule\":\"measurement-four-slot-v1\"},\"repetition\":{\"actual_completed\":\"unknown\",\"maximum_blocks\":");
     out.number(state.counts.maximum_blocks);out.raw(",\"maximum_measured_observations\":");out.ceiling(state.counts.maximum_observations);out.raw(",\"maximum_per_variant\":");out.number(state.counts.maximum_per_variant);
     out.raw(",\"minimum_blocks\":");out.number(state.counts.minimum_blocks);out.raw(",\"minimum_valid_per_variant\":");out.number(state.counts.minimum_valid_per_variant);out.raw(",\"stopping_enabled\":");out.flag(state.counts.stopping_enabled);
     out.raw("},\"resolved_plan_digest\":\"");out.digest(view.plan->resolved_digest()->digest());out.raw("\",\"scenario_digest\":\"");out.digest(view.plan->scenario_digest()->digest());
-    out.raw("\",\"schema\":\"");out.raw(profile);out.raw("\",\"seed_intent\":{\"bootstrap\":{\"components\":[],\"derivation\":\"deferred-to-production-policy\",\"domain\":\"bootstrap\",\"profile\":\"epycbench.seed-derivation.v1\"},\"root_seed\":");out.number(state.counts.root_seed);out.raw("}}");
+    out.raw("\",\"schema\":\"");out.raw(plugins?plugin_profile:profile);out.raw("\",\"seed_intent\":{\"bootstrap\":{\"components\":[],\"derivation\":\"deferred-to-production-policy\",\"domain\":\"bootstrap\",\"profile\":\"epycbench.seed-derivation.v1\"},\"root_seed\":");out.number(state.counts.root_seed);out.raw("}}");
 }
 void artifact(Sink& out,const H& input,SV semantic_bytes,Z semantic_size,const D& digest){
     out.raw("{\"evidence_digest\":\"");out.digest(*input.digest());out.raw("\",\"evidence_hex\":\"");out.hex(input.canonical());out.raw("\",\"execution_plan_digest\":\"");out.digest(digest);

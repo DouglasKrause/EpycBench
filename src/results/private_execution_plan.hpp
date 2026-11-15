@@ -3,6 +3,7 @@
 
 namespace epycbench::results::execution_plan {
 inline constexpr std::string_view profile="epycbench.private-execution-plan/v1";
+inline constexpr std::string_view plugin_profile="epycbench.private-execution-plan/v2";
 inline constexpr std::string_view artifact_profile="epycbench.private-execution-plan-artifact/v1";
 enum class PairKind { comparison,matrix };
 enum class Error { state,origin,build,object_evidence,reference,incompatible_placement,policy,capacity,encoding };

@@ -47,8 +47,8 @@ auto alias(SV text,Work& work)->std::optional<CompilerFamily> {
 }
 auto family_lookup(kernel::KernelId id,kernel::KernelImplementationId selected,Work& work)->std::optional<Z> {
     for(Z index=0;index<2;++index){
-        work.debit();if(id!=semantic[index])continue;
-        work.debit();if(selected==implementation[index])return index;
+        work.debit();if(id.family()!=semantic[index].family())continue;
+        work.debit();if(selected.family()==implementation[index].family())return index;
     }
     return {};
 }
@@ -131,6 +131,7 @@ struct Sink {
         raw(SV{decimal.data()+decimal.size()-digits,digits});}
 };
 void emit(Sink& out,const CapturedFacts& facts,const S& selection,const B& base,const A& approvals){
+    const bool plugins=sel::detail::uses_plugins(selection.workloads());
     out.raw("{\"base_build_digest\":\"");out.digest(*base.digest());out.raw("\",\"base_build_hex\":\"");out.hex(base.canonical());
     out.raw("\",\"build_manifest_digest\":");if(base.manifest()){out.raw("\"");out.digest(base.manifest()->digest()->value());out.raw("\"");}else out.raw("null");
     out.raw(",\"families\":[");
@@ -149,9 +150,14 @@ void emit(Sink& out,const CapturedFacts& facts,const S& selection,const B& base,
             out.raw(",\"object_sha256\":");if(approvals[family]){out.raw("\"");out.raw(facts.reports[family*2+slot].object_digest);out.raw("\"");}else out.raw("null");
             out.raw(",\"qualification_preset\":\"");out.raw(presets[slot]);out.raw("\"}");}
         out.raw("],\"declared_workloads\":\"");out.number(facts.rows[family].declared_workloads);
-        out.raw("\",\"implementation_id\":\"");out.raw(kernel::kernel_implementation_id_token(implementation[family]));
-        out.raw("\",\"semantic_id\":\"");out.raw(kernel::kernel_id_token(semantic[family]));out.raw("\"}");}
-    out.raw("],\"implementation_selection_digest\":\"");out.digest(*selection.digest());out.raw("\",\"implementation_selection_hex\":\"");out.hex(selection.canonical());out.raw("\",\"schema\":\"");out.raw(profile);out.raw("\"}");
+        if(plugins) {
+            out.raw("\",\"family\":\"");out.raw(family==0?"bandwidth":"latency");
+        } else {
+            out.raw("\",\"implementation_id\":\"");out.raw(kernel::kernel_implementation_id_token(implementation[family]));
+            out.raw("\",\"semantic_id\":\"");out.raw(kernel::kernel_id_token(semantic[family]));
+        }
+        out.raw("\"}");}
+    out.raw("],\"implementation_selection_digest\":\"");out.digest(*selection.digest());out.raw("\",\"implementation_selection_hex\":\"");out.hex(selection.canonical());out.raw("\",\"schema\":\"");out.raw(plugins?plugin_profile:profile);out.raw("\"}");
 }
 // Named logical cells cover nested getter returns and helper arguments, not ABI padding estimates.
 struct RetainCall {S* selection;B* base;A* approvals;Limits limits;Usage measured;std::unique_ptr<T> candidate;std::expected<P,Error> returned;std::optional<Error> failure;Z C_s,C_b,C_a,C,E,H,N,R,peak,hash_work,second_work,first_work;};
@@ -189,7 +195,7 @@ namespace detail {
 auto checked_add(Z left,Z right) noexcept->std::optional<Z>{if(right>std::numeric_limits<Z>::max()-left)return {};return left+right;}
 auto checked_multiply(Z left,Z right) noexcept->std::optional<Z>{if(left&&right>std::numeric_limits<Z>::max()/left)return {};return left*right;}
 auto compiler_family(SV text) noexcept->std::optional<CompilerFamily>{if(text=="GNU"||text=="GCC")return CompilerFamily::gcc;if(text=="Clang")return CompilerFamily::clang;return {};}
-auto family_index(kernel::KernelId id,kernel::KernelImplementationId selected) noexcept->std::optional<Z>{for(Z i=0;i<2;++i)if(id==semantic[i]&&selected==implementation[i])return i;return {};}
+auto family_index(kernel::KernelId id,kernel::KernelImplementationId selected) noexcept->std::optional<Z>{for(Z i=0;i<2;++i)if(id.family()==semantic[i].family()&&selected.family()==implementation[i].family())return i;return {};}
 auto match_token(Match value) noexcept->std::optional<SV>{const auto index=static_cast<Z>(value);if(index>=matches.size())return {};return matches[index];}
 auto fixed_stock() noexcept->Z{
     return sizeof(RetainCall)+sizeof(CapturedFacts)+sizeof(ChildViews)+sizeof(LowerUsage)+sizeof(GetterReturns)+sizeof(WorkCells)+sizeof(AssociationVisit)+sizeof(MemberLookup)+sizeof(Comparisons)+sizeof(Sink)+sizeof(SinkCall)+sizeof(HexTraversal)+sizeof(EmitCall)+sizeof(CheckedArithmetic)+sizeof(GuardAndError)+sizeof(CaptureCall)+sizeof(AliasCall)+sizeof(FamilyLookup)+sizeof(TokenCalls)+sizeof(DigestGetter)+sizeof(StringLimit)+sizeof(StateConstruction)+sizeof(MovePublication)+sizeof(HashCells);

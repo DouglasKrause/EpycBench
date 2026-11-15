@@ -464,6 +464,7 @@ struct ShapeContext final {
     const NormalizedCapacityParameterValue* parameters{};
     VariantSide side{VariantSide::none};
     std::uint64_t owner_total_pages{}, owner_target_count{}, domain_cpu_count{};
+    KernelIdentityCapacity identities{KernelIdentityCapacity::plugin_tokens};
 };
 
 [[nodiscard]] auto shape_error() noexcept -> std::unexpected<CapacityError> {
@@ -598,6 +599,10 @@ struct ShapeContext final {
     using detail::SchemaKind;
     const auto& node = detail::schema_nodes[index];
     if (node.kind == SchemaKind::scalar) {
+        if (context.identities == KernelIdentityCapacity::legacy_builtin_tokens &&
+            std::ranges::find(detail::kernel_implementation_definitions, index) !=
+                detail::kernel_implementation_definitions.end())
+            return Shape{maximum ? 28U : 26U, 1U, 1U};
         if (!maximum) return Shape{node.minimum_bytes, 1U, 1U};
         auto bytes = formula_value(node.maximum_formula, context);
         if (!bytes) return std::unexpected(bytes.error());
@@ -775,8 +780,10 @@ auto maximum_component_shape(EvidenceComponentKind kind, EvidenceComponentSide s
     if (p.maximum_blocks.value > UINT64_MAX / 4U || p.base_page_bytes.value > UINT64_MAX / 8U ||
         p.maximum_cpu_index.value > UINT64_MAX - 2U)
         return shape_error();
-    const auto shape = evaluate_shape(*selected,
-        {&p, side == EvidenceComponentSide::first ? VariantSide::first : VariantSide::second}, true);
+    ShapeContext context{
+        &p, side == EvidenceComponentSide::first ? VariantSide::first : VariantSide::second};
+    context.identities = capacity.identities;
+    const auto shape = evaluate_shape(*selected, context, true);
     if (!shape) return std::unexpected{shape.error()};
     return LogicalShape{{shape->bytes}, {shape->nodes}, {shape->depth}};
 }
@@ -788,7 +795,8 @@ auto minimum_logical_shape() noexcept -> std::expected<LogicalShape, CapacityErr
 }
 
 auto calculate_evidence_capacity(const NormalizedCapacityParameters& parameters,
-                                 LocalResourceLimits limits) noexcept
+                                 LocalResourceLimits limits,
+                                 KernelIdentityCapacity identities) noexcept
     -> std::expected<CalculatedEvidenceCapacity, CapacityError> {
     auto prerequisite = calculate_capacity_prerequisite(parameters, {limits.size_max});
     if (!prerequisite) return std::unexpected(prerequisite.error());
@@ -801,7 +809,9 @@ auto calculate_evidence_capacity(const NormalizedCapacityParameters& parameters,
         target_exceeds(values.first_target_counts) || target_exceeds(values.second_target_counts))
         return std::unexpected(CapacityError{CapacityErrorCode::size_unrepresentable,
                                              CapacityField::logical_shape});
-    auto shape = evaluate_shape(detail::evidence_root, {&values}, true);
+    ShapeContext context{&values};
+    context.identities = identities;
+    auto shape = evaluate_shape(detail::evidence_root, context, true);
     if (!shape) return std::unexpected(shape.error());
     auto bytes_with_probe = checked_add(shape->bytes, 1U);
     if (!bytes_with_probe) return std::unexpected(bytes_with_probe.error());
@@ -817,7 +827,7 @@ auto calculate_evidence_capacity(const NormalizedCapacityParameters& parameters,
     const LogicalShape logical{{shape->bytes}, {shape->nodes}, {shape->depth}};
     const ResourcePlan plan{{shape->bytes}, {1U}, {shape->nodes}, prerequisite->evidence_destinations,
                             {shape->bytes}, {1U}, {shape->nodes}, prerequisite->evidence_destinations};
-    return CalculatedEvidenceCapacity{std::move(*prerequisite), logical, plan};
+    return CalculatedEvidenceCapacity{std::move(*prerequisite), logical, plan, identities};
 }
 
 auto validate_exact_evidence_capacity(const CalculatedEvidenceCapacity& expected,

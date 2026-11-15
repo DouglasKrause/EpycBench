@@ -122,17 +122,19 @@ def assess(family, instructions):
     return "warning", "The dependency uses an unrecognized form; no basic failure established."
 
 
-def inspect(executable, runner=None):
+def inspect(executable, runner=None, functions=None):
     runner = runner or Runner()
+    functions = FUNCTIONS if functions is None else functions
     sections = parse_sections(checked_run(runner, ["readelf", "--sections", "--wide", str(executable)]))
     symbol_text = checked_run(runner, ["readelf", "--symbols", "--wide", str(executable)])
     names = [match[6].split("@", 1)[0] for line in symbol_text.splitlines()
-             if (match := SYMBOL_RE.match(line)) and any(method in match[6] for method in
-                 ("execute_sequential_read_bandwidth", "execute_dependent_load_latency"))]
+             if (match := SYMBOL_RE.match(line)) and
+             (match[6].split("@", 1)[0] in functions.values() or any(method in match[6] for method in
+                 ("execute_sequential_read_bandwidth", "execute_dependent_load_latency")))]
     # A symbol may appear in both the dynamic and regular symbol tables.
     symbols = list(dict.fromkeys(parse_symbols(symbol_text, demangle_symbols(runner, names, "c++filt"))))
     results = []
-    for family, signature in FUNCTIONS.items():
+    for family, signature in functions.items():
         result = {"family": family, "symbol": signature}
         try:
             symbol, section = select_symbol(symbols, signature, sections)
@@ -151,11 +153,20 @@ def inspect(executable, runner=None):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--executable", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--executable", type=Path)
+    source.add_argument("--module", type=Path)
+    parser.add_argument("--family", choices=("bandwidth", "latency"))
+    parser.add_argument("--symbol", default="epycbench_kernel_execute_v1")
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args(argv)
+    if arguments.module and not arguments.family:
+        parser.error("--module requires --family")
+    if arguments.executable and arguments.family:
+        parser.error("--family applies to --module")
+    target = arguments.module or arguments.executable
     try:
-        results = inspect(arguments.executable)
+        results = inspect(target, functions={arguments.family: arguments.symbol} if arguments.module else None)
     except (AuditError, OSError, subprocess.TimeoutExpired) as error:
         results = [{"status": "warning", "detail": f"Inspection unavailable: {error}"}]
     status = "fail" if any(result["status"] == "fail" for result in results) else (
@@ -163,6 +174,12 @@ def main(argv=None):
     report = {"schema": "epycbench.basic-kernel-check/v1", "status": status,
               "scope": "Basic compiled-work sanity checks; not exact instruction or performance equivalence.",
               "functions": results}
+    if arguments.module:
+        report["artifact"] = "kernel-module"
+        try:
+            report["module_sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+        except OSError:
+            pass  # The inspection warning already records unavailable input.
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Kernel code check: {status} ({arguments.output})")

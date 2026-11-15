@@ -150,7 +150,7 @@ auto validate_placement_request_local(const PlacementRequestConstructionValues& 
         (v.version != PlacementRequestTransportVersion::v2 && !v.monitoring) ||
         (v.version == PlacementRequestTransportVersion::v3 && !scenario))
         return std::unexpected{invalid("provenance_invalid")};
-    const bool bw = v.kernel_id == kernel::KernelId::sequential_read_bandwidth_v1;
+    const bool bw = v.kernel_id.family() == kernel::KernelFamily::bandwidth;
     if (bw != std::holds_alternative<BandwidthValues>(v.kernel))
         return std::unexpected{invalid("kernel_alternative_inconsistent", "execution.kernel")};
     if (const auto* bandwidth = std::get_if<BandwidthValues>(&v.kernel);

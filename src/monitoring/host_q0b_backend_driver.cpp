@@ -9,6 +9,7 @@
 #include "epycbench/runtime/pairwise_production_operations_adapter.hpp"
 #include "epycbench/runtime/ipc/protocol.hpp"
 #include "runtime/controller_process_production_authority.hpp"
+#include "runtime/kernel_module_session.hpp"
 
 #include <chrono>
 #include <exception>
@@ -54,7 +55,13 @@ auto contained(std::string classification)->core::Error{return {
  .context={{"classification",std::move(classification)}},.severity=core::ErrorSeverity::error,
  .continuation=core::ContinuationPolicy::abort_command};}
 auto production_load(void*,const std::filesystem::path& path) noexcept
- ->std::expected<MonitoringHostInputTemplateAuthority,core::Error>{return load_monitoring_host_input_template(path);}
+ ->std::expected<MonitoringHostInputTemplateAuthority,core::Error>{
+ // The governed driver reaches this production leaf after descriptor adoption
+ // and its original stage guard; injected synthetic loaders stay independent.
+ if(!runtime::initialize_qualification_kernel_modules())
+   return std::unexpected{contained("kernel_module_initialization")};
+ return load_monitoring_host_input_template(path);
+}
 auto production_acquire(void*,MonitoringHostInputTemplateAuthority input) noexcept
  ->std::expected<RunnerContextAcquisitionSession,core::Error>{return acquire_runner_context_session(std::move(input));}
 auto production_operations(void*) noexcept->std::expected<HostQ0bBackendOperations,core::Error>{

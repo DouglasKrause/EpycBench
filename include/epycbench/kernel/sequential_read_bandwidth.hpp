@@ -2,6 +2,7 @@
 
 #include "epycbench/core/error.hpp"
 #include "epycbench/kernel/configuration.hpp"
+#include "epycbench/kernel/plugin.h"
 
 #include <cstddef>
 #include <compare>
@@ -68,12 +69,17 @@ class PreparedSequentialReadBandwidth {
 
     [[nodiscard]] auto word_count() const noexcept -> std::size_t { return word_count_; }
 
+    // Bound once during untimed preparation; the session owns the module.
+    void bind_module(const EpycBenchKernelV1& api) noexcept { module_ = &api; }
+    [[nodiscard]] auto module() const noexcept -> const EpycBenchKernelV1* { return module_; }
+
   private:
     PreparedSequentialReadBandwidth(SequentialReadBandwidthInput input,
                                     std::size_t word_count) noexcept;
 
     const SequentialReadBandwidthInput input_;
     const std::size_t word_count_;
+    const EpycBenchKernelV1* module_{};
 };
 
 class SequentialReadBandwidthPassCount {

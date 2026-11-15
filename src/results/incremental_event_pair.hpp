@@ -28,6 +28,7 @@ struct DecodedContext {
     std::string session;
     // Checked conservative stock of this decoded owner, not its input ceiling.
     std::size_t retained_bytes{};
+    kernel::KernelImplementationId implementation{};
 };
 struct CompositionLimits {
     PlanLimits planning;

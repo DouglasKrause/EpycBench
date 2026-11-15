@@ -4,6 +4,7 @@
 #include "core/json_ownership.hpp"
 #include "epycbench/core/digest.hpp"
 #include "runtime/controller_process_production_authority.hpp"
+#include "runtime/kernel_module_session.hpp"
 #include "core/governed_repository_source_access.hpp"
 #include "monitoring/host_frozen_evidence.hpp"
 #include "monitoring/host_input_template_access.hpp"
@@ -1406,6 +1407,17 @@ auto HostFrozenSourceLaunchState::collect(int channel, int parent, int output, i
         auto reserved = ledger->reserve(bootstrap);
         if (!reserved) throw HostFrozenSourceLaunchReason::capacity;
         state.input_lease.emplace(std::move(*reserved));
+        // Keep module discovery inside the original launch fence, after all
+        // inherited descriptors have owners and before source/native workers.
+        if (!synthetic) {
+            if (!binding.guard()) throw HostFrozenSourceLaunchReason::deadline;
+            if (!runtime::initialize_qualification_kernel_modules()) {
+                constexpr std::string_view diagnostic{"kernel_module_initialization"};
+                std::copy(diagnostic.begin(), diagnostic.end(), admission_diagnostic.begin());
+                throw HostFrozenSourceLaunchReason::association;
+            }
+            if (!binding.guard()) throw HostFrozenSourceLaunchReason::deadline;
+        }
         state.repository_path = root;
         state.qualification_path = state.repository_path / ".local" / "monitoring-qualification" / qualification_id;
         auto launched = grant;

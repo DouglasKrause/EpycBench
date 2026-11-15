@@ -296,9 +296,9 @@ struct Inspector {
             value.kernel_token != kernel::kernel_id_token(value.kernel_id) ||
             !string(value.source_pointer, false))
             return false;
-        if (value.kernel_id == kernel::KernelId::sequential_read_bandwidth_v1)
+        if (value.kernel_id.family() == kernel::KernelFamily::bandwidth)
             return std::holds_alternative<kernel::SequentialReadBandwidthConfig>(value.configuration);
-        if (value.kernel_id != kernel::KernelId::dependent_load_latency_v1 ||
+        if (value.kernel_id.family() != kernel::KernelFamily::latency ||
             !std::holds_alternative<kernel::DependentLoadLatencyConfig>(value.configuration))
             return false;
         const auto& seed = std::get<kernel::DependentLoadLatencyConfig>(value.configuration).pointer_cycle_seed();
@@ -437,7 +437,7 @@ auto typed_domains(const RetainedPlanProjectionView& view) noexcept -> bool {
         const auto found = view.workloads.find(binding.workload_id);
         if (found == view.workloads.end())
             return false;
-        const bool latency = found->second.kernel_id == kernel::KernelId::dependent_load_latency_v1;
+        const bool latency = found->second.kernel_id.family() == kernel::KernelFamily::latency;
         if (latency != binding.pointer_cycle_seed.has_value())
             return false;
     }

@@ -758,11 +758,11 @@ auto closed_token(std::string_view token, ReconstructionPath path,
     return error(TypedReconstructionErrorCode::invalid_scalar, std::move(path));
 }
 
-auto implementation(std::string_view token, ReconstructionPath path)
+auto implementation(std::string_view token, kernel::KernelFamily family, ReconstructionPath path)
     -> std::expected<kernel::KernelImplementationId, FixedTypedReconstructionError> {
-    return closed_token<kernel::KernelImplementationId>(token, std::move(path), {
-        {"scalar_u64_sequential_v1", kernel::KernelImplementationId::scalar_u64_sequential_v1},
-        {"scalar_u64_random_cycle_v1", kernel::KernelImplementationId::scalar_u64_random_cycle_v1}});
+    const auto parsed = kernel::parse_kernel_implementation_wire_id(token, family);
+    if (!parsed) return error(TypedReconstructionErrorCode::typed_invariant, std::move(path));
+    return *parsed;
 }
 
 auto reconstruct_validity(const nlohmann::json& value)
@@ -1344,15 +1344,17 @@ auto reconstruct_measurement(const nlohmann::json& value)
     auto observation = u64(value.at("observation_id"), "measurement.observation_id");
     auto experiment = u64(value.at("experiment_id"), "measurement.experiment_id");
     auto block = u64(value.at("block_id"), "measurement.block_id");
+    const auto kind = value.at("kind").get<std::string_view>();
+    const auto family = kind == "bandwidth" ? kernel::KernelFamily::bandwidth
+        : kind == "latency" ? kernel::KernelFamily::latency : kernel::KernelFamily::invalid;
     auto impl = implementation(value.at("implementation_id").get<std::string_view>(),
-                               "measurement.implementation_id");
+                               family, "measurement.implementation_id");
     auto enclosing = interval(value.at("enclosing_interval"), "measurement.enclosing_interval");
     if (!observation) return std::unexpected{observation.error()};
     if (!experiment) return std::unexpected{experiment.error()};
     if (!block) return std::unexpected{block.error()};
     if (!impl) return std::unexpected{impl.error()};
     if (!enclosing) return std::unexpected{enclosing.error()};
-    const auto kind = value.at("kind").get<std::string_view>();
     if (kind == "bandwidth") {
         auto bytes = u64(value.at("configuration").at("working_set_per_worker"), "measurement.configuration.working_set_per_worker");
         auto passes = u64(value.at("pass_count"), "measurement.pass_count");
@@ -1394,7 +1396,7 @@ auto reconstruct_measurement(const nlohmann::json& value)
                 core::WorkerId{static_cast<std::uint32_t>(*id)}, std::move(*measured), kernel::detail::KernelLeafAccess::bandwidth_work(core::ByteCount::from_base_units(*work)),
                 kernel::detail::KernelLeafAccess::bandwidth_verification(*expected, *actual)));
         }
-        if (*impl != kernel::KernelImplementationId::scalar_u64_sequential_v1 || workers.empty())
+        if (impl->family() != kernel::KernelFamily::bandwidth || workers.empty())
             return error(TypedReconstructionErrorCode::typed_invariant, "measurement");
         std::uint64_t total{};
         for (const auto& worker : workers) {
@@ -1441,7 +1443,7 @@ auto reconstruct_measurement(const nlohmann::json& value)
             workers.push_back(measurement::DependentLoadLatencyWorkerObservation::create(core::WorkerId{static_cast<std::uint32_t>(*id)}, std::move(*measured), kernel::detail::KernelLeafAccess::schedule(static_cast<std::size_t>(*start), *count), kernel::detail::KernelLeafAccess::latency_verification(static_cast<std::size_t>(*expected), static_cast<std::size_t>(*actual))));
         }
         auto aggregate = u64(value.at("aggregate_work"), "measurement.aggregate_work"); if (!aggregate) return std::unexpected{aggregate.error()};
-        if (*impl != kernel::KernelImplementationId::scalar_u64_random_cycle_v1 || workers.empty())
+        if (impl->family() != kernel::KernelFamily::latency || workers.empty())
             return error(TypedReconstructionErrorCode::typed_invariant, "measurement");
         std::uint64_t total{};
         for (const auto& worker : workers) {
@@ -3376,7 +3378,8 @@ auto measurement_projection(const measurement::MeasurementObservation& value) ->
                 component_projection::set(object_24, "experiment_id",
                                        projection_decimal(measured.experiment_id().value()));
                 component_projection::set(object_24, "block_id", projection_decimal(measured.block_id().value()));
-                component_projection::set(object_24, "implementation_id", "scalar_u64_sequential_v1");
+                component_projection::set(object_24, "implementation_id",
+                    kernel::kernel_implementation_wire_token(measured.implementation_id()));
                 component_projection::set(
                     object_24, "configuration",
                     component_projection::object<Json>([&](auto& object_25) {
@@ -3436,7 +3439,7 @@ auto measurement_projection(const measurement::MeasurementObservation& value) ->
                                        projection_decimal(measured.experiment_id().value()));
                 component_projection::set(object_29, "block_id", projection_decimal(measured.block_id().value()));
                 component_projection::set(object_29, "implementation_id",
-                                       "scalar_u64_random_cycle_v1");
+                    kernel::kernel_implementation_wire_token(measured.implementation_id()));
                 component_projection::set(
                     object_29, "configuration",
                     component_projection::object<Json>([&](auto& object_30) {

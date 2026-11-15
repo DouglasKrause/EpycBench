@@ -10,7 +10,7 @@ struct DefinitionStock { std::string_view definition_id; DefinitionKind kind; st
 struct AggregateStock { std::string_view name; std::uint32_t formula; };
 
 inline constexpr std::string_view profile = "epycbench.finalized-evidence-prepared-resources/v1";
-inline constexpr std::string_view wire_registry_sha256 = "2639a505882a42779853bba12287b7c72ebe56b40c3e96c245a12a8c58fd34d5";
+inline constexpr std::string_view wire_registry_sha256 = "626c6355f54a5f7abea5a67cd6c8db95efd423540291145dc050c976c9038f48";
 inline constexpr std::string_view evidence_root = "finalized_pairwise_run_evidence";
 inline constexpr std::array formula_args{
     std::uint32_t{0U},

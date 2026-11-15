@@ -11,6 +11,7 @@
 #include "epycbench/runtime/pairwise_production_operations_adapter.hpp"
 #include "epycbench/runtime/runner_context.hpp"
 #include "runtime/controller_process_production_authority.hpp"
+#include "runtime/kernel_module_session.hpp"
 
 #include <charconv>
 #include <chrono>
@@ -137,6 +138,10 @@ auto run_monitoring_q0b_command(
         return render_monitoring_q0b_result(
             std::unexpected<Q0bBackendFailure>{usage_failure()}, output, error);
     try {
+        if (!runtime::initialize_qualification_kernel_modules())
+            return render_monitoring_q0b_result(
+                std::unexpected<Q0bBackendFailure>{transport_failure("kernel_module_initialization")},
+                output, error);
         auto provider = runtime::make_linux_pairwise_production_host_operations_provider();
         auto adapter = provider.adapter();
         auto operations = adapter.calibration_operations();
