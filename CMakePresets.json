@@ -1,0 +1,37 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "release",
+      "displayName": "Release (GCC)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "EPYCBENCH_BUILD_PRESET": "release",
+        "EPYCBENCH_NATIVE_REFERENCE": "OFF",
+        "EPYCBENCH_STAGE_REFERENCE_FIXTURE": "OFF",
+        "EPYCBENCH_KERNEL_EVIDENCE_ROOT": "",
+        "EPYCBENCH_KERNEL_EVIDENCE_REVIEW_ROUTE": "independent_agents"
+      }
+    },
+    {
+      "name": "release-clang",
+      "displayName": "Release (Clang)",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/release-clang",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "EPYCBENCH_BUILD_PRESET": "release-clang"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "release", "configurePreset": "release"},
+    {"name": "release-clang", "configurePreset": "release-clang"}
+  ]
+}

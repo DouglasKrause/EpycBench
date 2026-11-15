@@ -1,0 +1,32 @@
+#pragma once
+
+#include <string_view>
+
+namespace epycbench::build_info {
+
+inline constexpr std::string_view project_version{"${PROJECT_VERSION}"};
+inline constexpr std::string_view git_revision{"${GIT_REVISION}"};
+inline constexpr bool git_dirty = ${GIT_DIRTY};
+inline constexpr std::string_view compiler_id{"${COMPILER_ID}"};
+inline constexpr std::string_view compiler_version{"${COMPILER_VERSION}"};
+inline constexpr std::string_view compiler_target{"${COMPILER_TARGET}"};
+inline constexpr std::string_view compiler_flags{"${COMPILER_FLAGS}"};
+inline constexpr std::string_view linker_id{"${LINKER_ID}"};
+inline constexpr std::string_view linker_version{"${LINKER_VERSION}"};
+inline constexpr std::string_view preset{"${BUILD_PRESET}"};
+inline constexpr std::string_view build_identity{"${BUILD_IDENTITY}"};
+
+inline constexpr bool feature_testing = ${FEATURE_TESTING};
+inline constexpr bool feature_asan_ubsan = ${FEATURE_ASAN_UBSAN};
+inline constexpr bool feature_tsan = ${FEATURE_TSAN};
+inline constexpr bool feature_native_reference = ${FEATURE_NATIVE_REFERENCE};
+
+inline constexpr std::string_view hwloc_version{"${HWLOC_VERSION}"};
+inline constexpr std::string_view numa_version{"${NUMA_VERSION}"};
+inline constexpr std::string_view libfyaml_version{"${LIBFYAML_VERSION}"};
+inline constexpr std::string_view cli11_version{"${CLI11_VERSION}"};
+inline constexpr std::string_view nlohmann_json_version{"${NLOHMANN_JSON_VERSION}"};
+inline constexpr std::string_view fmt_version{"${FMT_VERSION}"};
+inline constexpr std::string_view catch2_version{"${CATCH2_VERSION}"};
+
+} // namespace epycbench::build_info

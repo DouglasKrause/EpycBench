@@ -1,0 +1,74 @@
+schema: epycbench.scenario/v1
+metadata:
+  id: local-remote-read
+  name: Editable local versus remote memory read comparison
+random:
+  seed: 918273645
+requirements:
+  operating_system: linux
+  numa:
+    minimum_cpu_nodes: 1
+    minimum_memory_nodes: 2
+resources:
+  worker_sets:
+    benchmark-worker:
+      select:
+        unit: core
+        count: 1
+        ordering: ascending-pu
+  service_cpus:
+    monitoring-service:
+      select:
+        unit: core
+        count: 1
+        ordering: descending-pu
+        exclude:
+          worker_sets: [benchmark-worker]
+workloads:
+  sequential-read:
+    kernel: memory.bandwidth.read/v1
+    parameters:
+      working_set: 64 MiB
+experiments:
+  - id: worker-placement
+    type: comparison
+    workload: sequential-read
+    workers: benchmark-worker
+    variants:
+      - id: local
+        memory:
+          policy: bind
+          nodes:
+            local-to-workers: true
+      - id: candidate-node
+        memory:
+          policy: bind
+          # Inspect topology and replace with a suitable remote Linux NUMA node.
+          nodes: [1]
+    compare:
+      baseline: local
+      candidates: [candidate-node]
+      practical_effect: 1%
+      confidence: 95%
+      order:
+        strategy: randomized-abba
+measurement:
+  observation:
+    target_duration: 500 ms
+    minimum_duration: 250 ms
+    maximum_duration: 1 s
+  warmup:
+    minimum: 3
+    maximum: 10
+    stability_window: 3
+    stability_threshold: 3%
+  repetition:
+    minimum_blocks: 8
+    maximum_blocks: 20
+  stopping:
+    enabled: true
+    confidence: 95%
+    ratio_interval_relative_half_width: 2%
+monitoring:
+  required: [cpu-migration, major-page-faults]
+  optional: [temperature, frequency]

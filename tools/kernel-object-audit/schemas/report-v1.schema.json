@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "epycbench.kernel-object-audit-report/v1",
+  "title": "EpycBench Kernel Object-Code Audit Report v1",
+  "type": "object",
+  "required": [
+    "schema", "framework_version", "family_policy_version", "source",
+    "implementation_id", "qualification", "compiler", "compile_command",
+    "effective_flags", "object", "symbol", "function", "tools", "instructions",
+    "relocations", "inventory", "generic_findings", "family_findings",
+    "automated_disposition", "human_review", "qualification_status"
+  ],
+  "properties": {
+    "schema": {"const": "epycbench.kernel-object-audit-report/v1"},
+    "framework_version": {"const": "epycbench.kernel-object-audit/v1"},
+    "family_policy_version": {"type": "string"},
+    "source": {"type": "object", "required": ["commit", "dirty"]},
+    "implementation_id": {"type": "string"},
+    "qualification": {"type": "object"},
+    "compiler": {"type": "object"},
+    "compile_command": {"type": "array", "items": {"type": "string"}},
+    "effective_flags": {"type": "object"},
+    "object": {"type": "object", "required": ["identity", "sha256"]},
+    "symbol": {"type": "object", "required": ["mangled", "demangled", "binding", "type", "value", "size"]},
+    "function": {"type": "object", "required": ["sha256", "start", "stop"]},
+    "tools": {"type": "object"},
+    "instructions": {"type": "array"},
+    "relocations": {"type": "array"},
+    "inventory": {"type": "object"},
+    "generic_findings": {"type": "array"},
+    "family_findings": {"type": "array"},
+    "automated_disposition": {"enum": ["pass", "fail"]},
+    "human_review": {"type": "object", "required": ["required", "status", "items"]},
+    "qualification_status": {"enum": ["automated_failure", "pending_human_review"]}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,50 @@
+{
+  "compiler_flags": {
+    "Clang": {
+      "coverage": false,
+      "loop_vectorization": false,
+      "lto": false,
+      "native_arch": false,
+      "native_tune": false,
+      "optimization": "-O3",
+      "profiling": false,
+      "sanitizers": false,
+      "slp_vectorization": false,
+      "unrolling": false
+    },
+    "GCC": {
+      "coverage": false,
+      "loop_vectorization": false,
+      "lto": false,
+      "native_arch": false,
+      "native_tune": false,
+      "optimization": "-O3",
+      "profiling": false,
+      "sanitizers": false,
+      "slp_vectorization": false,
+      "unrolling": false
+    }
+  },
+  "compiler_presets": {
+    "Clang": "release-clang",
+    "GCC": "release"
+  },
+  "human_review": [
+    "latency.v1.review.candidate_loop",
+    "latency.v1.review.one_load",
+    "latency.v1.review.load_form",
+    "latency.v1.review.successor_only",
+    "latency.v1.review.dependency",
+    "latency.v1.review.single_chain",
+    "latency.v1.review.no_bounds",
+    "latency.v1.review.one_step",
+    "latency.v1.review.no_stores",
+    "latency.v1.review.scalar_traversal",
+    "latency.v1.review.terminal",
+    "latency.v1.review.setup"
+  ],
+  "identifier": "epycbench.kernel-object-audit.latency/v1",
+  "implementation_id": "scalar-u64-random-cycle/v1",
+  "semantic_symbol": "epycbench::kernel::execute_dependent_load_latency(epycbench::kernel::PreparedDependentLoadLatency const&, epycbench::kernel::DependentLoadLatencySchedule)",
+  "version": "epycbench.kernel-object-audit.latency/v1"
+}
