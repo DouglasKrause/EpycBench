@@ -412,7 +412,7 @@ auto acquire_checked_snapshot(Environment& environment)
 
 } // namespace
 
-auto make_production_environment(std::size_t maximum_input_bytes) -> Environment {
+auto make_production_environment() -> Environment {
     return Environment{
         .discover_hwloc = [] { return discover_hwloc_topology(); },
         .discover_linux = [] { return discover_linux_topology(); },
@@ -441,9 +441,7 @@ auto make_production_environment(std::size_t maximum_input_bytes) -> Environment
         .derive_fingerprints = derive_topology_fingerprints,
         .serialize = serialize_topology,
         .deserialize = deserialize_topology,
-        .read_file = [maximum_input_bytes](const std::filesystem::path& path) {
-            return read_regular_file(path, maximum_input_bytes);
-        },
+        .read_bounded_file = read_regular_file,
         .publish_file = publish_regular_file,
     };
 }
@@ -453,16 +451,17 @@ auto run(int argc, char* argv[], Environment& environment, std::ostream& output,
     CLI::App app{"Topology-linked benchmarking for AMD EPYC systems", "epycbench"};
     app.require_subcommand(0, 1);
 
-    auto* topology = app.add_subcommand("topology", "Canonical topology artifacts");
+    auto* topology = app.add_subcommand(
+        "topology", "Export and validate canonical topology for package Scenarios and experiments");
     topology->require_subcommand(1, 1);
-    auto* export_command = topology->add_subcommand("export", "Export canonical topology");
+    auto* export_command = topology->add_subcommand("export", "Save a canonical topology snapshot");
     bool live = false;
     bool reference = false;
     bool force = false;
     std::filesystem::path output_path;
     export_command->add_flag("--live", live, "Use live read-only discovery");
     export_command->add_flag("--reference-fixture", reference,
-                             "Use the staged public reference fixture");
+                             "Use the staged development reference fixture");
     export_command->add_option("--output", output_path, "Output artifact path")->required();
     export_command->add_flag("--force", force, "Replace an existing regular file");
 

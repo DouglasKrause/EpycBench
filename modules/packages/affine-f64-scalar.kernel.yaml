@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-f64-affine32/v1
+task: affine-f64.task.yaml
+module: affine-f64-scalar.so
+tuning: {}

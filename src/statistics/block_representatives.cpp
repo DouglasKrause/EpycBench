@@ -50,4 +50,10 @@ auto block_dependent_load_latency_representatives(
     return calculate(first, second, detail::PrimaryMetricAccess::latency);
 }
 
+auto block_task_throughput_representatives(std::array<TaskThroughput, 2> first,
+                                           std::array<TaskThroughput, 2> second)
+    -> std::expected<BlockRepresentatives<TaskThroughput>, core::Error> {
+    return calculate(first, second, detail::PrimaryMetricAccess::task_throughput);
+}
+
 } // namespace epycbench::statistics

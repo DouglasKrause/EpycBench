@@ -155,6 +155,18 @@ class NumaAccess {
                                          std::uint64_t native_length_max =
                                              std::numeric_limits<unsigned long>::max())
         -> std::expected<void, core::Error>;
+    // Caller has checked address/range, native length, mask and operation.
+    // This is the nonallocating invocation shared by prepared Runtime and the
+    // ordinary owning adapter; Linux policy constants stay in Platform Linux.
+    [[nodiscard]] static auto interleave_prechecked(
+        void* address, unsigned long length, const NativeNumaMask& nodes,
+        const NumaOperations& operations) noexcept -> RawNumaResult;
+    [[nodiscard]] static auto interleave_range(void* address, std::size_t length,
+                                               const NativeNumaMask& nodes,
+                                               const NumaOperations& operations,
+                                               std::uint64_t native_length_max =
+                                                   std::numeric_limits<unsigned long>::max())
+        -> std::expected<void, core::Error>;
     static auto checked_domain(
         const core::NodeSet& nodes,
         std::uint64_t native_max = std::numeric_limits<unsigned long>::max(),

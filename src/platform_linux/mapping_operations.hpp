@@ -64,6 +64,9 @@ class AnonymousMappingAccess {
     [[nodiscard]] static auto create(std::size_t length, const MappingOperations& operations,
                                      RangeValidator validate_range = validate_address_range)
         -> std::expected<AnonymousMapping, core::Error>;
+    [[nodiscard]] static auto create_explicit_hugetlb_2m(
+        std::size_t length, const MappingOperations& operations = production_mapping_operations())
+        -> std::expected<AnonymousMapping, core::Error>;
 
   private:
     static void validate_address_range(void* address, std::size_t length);

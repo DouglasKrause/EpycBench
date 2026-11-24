@@ -17,6 +17,8 @@
 namespace epycbench::platform_linux::host_work {
 namespace {
 using Raw = detail::RawStatusResult;
+constexpr std::uint64_t fixed_global_headroom = UINT64_C(42949672960);
+constexpr std::uint64_t fixed_node_headroom = UINT64_C(4294967296);
 constexpr std::uint64_t duration = UINT64_C(5000000000);
 constexpr std::array<std::uint64_t, 3> ceilings{
     UINT64_C(21474836480), UINT64_C(8388608), UINT64_C(1024)};
@@ -168,7 +170,7 @@ auto parse_memory_bytes(std::string_view input, std::optional<core::LinuxNumaNod
 }
 
 auto check_memory_headroom(core::ByteCount bytes, bool node) noexcept -> std::expected<void, Reason> {
-    const std::uint64_t required = node ? UINT64_C(4294967296) : UINT64_C(42949672960);
+    const auto required = node ? fixed_node_headroom : fixed_global_headroom;
     if (bytes.value() < required) return std::unexpected{Reason::headroom};
     return {};
 }
@@ -193,16 +195,16 @@ auto production_read_operations() noexcept -> ReadOperations {
         }, {nullptr, native_now, not_cancelled}};
 }
 
-auto read_headroom(std::span<const core::LinuxNumaNodeId> nodes,
+auto read_headroom(core::ByteCount minimum_global, std::span<const NodeMemoryDemand> nodes,
     const ReadOperations& operations, ReadLimits limits) noexcept
     -> std::expected<HeadroomReceipt, Failure> {
-    if (nodes.empty() || nodes.size() > 8 || !operations.open_root || !operations.open_at ||
+    if (nodes.size() > 1024 || !operations.open_root || !operations.open_at ||
         !operations.metadata || !operations.read || !operations.close ||
         limits.bytes == 0 || limits.bytes > 65536 || limits.calls == 0 || limits.calls > 1024)
         return std::unexpected{Failure{Reason::invalid_input}};
     for (std::size_t i = 0; i < nodes.size(); ++i)
         for (std::size_t j = 0; j < i; ++j)
-            if (nodes[i] == nodes[j]) return std::unexpected{Failure{Reason::invalid_input}};
+            if (nodes[i].node == nodes[j].node) return std::unexpected{Failure{Reason::invalid_input}};
     Deadline deadline{operations.guard};
     auto ready = deadline.start();
     if (!ready) return std::unexpected{Failure{ready.error()}};
@@ -248,7 +250,7 @@ auto read_headroom(std::span<const core::LinuxNumaNodeId> nodes,
         return true;
     };
     const auto file = [&](std::size_t parent, Source source,
-                          std::optional<core::LinuxNumaNodeId> node) -> bool {
+                          std::optional<core::LinuxNumaNodeId> node, core::ByteCount minimum) -> bool {
         auto checked = deadline.check();
         if (!checked) { fail(checked.error()); return false; }
         if (!open(operations.open_at(operations.context, owned[parent], "meminfo", false), 3)) return false;
@@ -281,29 +283,28 @@ auto read_headroom(std::span<const core::LinuxNumaNodeId> nodes,
         if (initial != final) { fail(Reason::authentication); return false; }
         const auto parsed = parse_memory_bytes({text.data(), used}, node);
         if (!parsed) { fail(parsed.error()); return false; }
-        const auto sufficient = check_memory_headroom(*parsed, node.has_value());
-        if (!sufficient) { fail(sufficient.error()); return false; }
+        if (*parsed < minimum) { fail(Reason::headroom); return false; }
         close(3);
         return !failure;
     };
     const auto run = [&]() {
         Metadata ignored{};
         if (!open(operations.open_root(operations.context, Source::proc), 0) ||
-            !metadata(0, Source::proc, true, ignored) || !file(0, Source::proc, std::nullopt)) return;
+            !metadata(0, Source::proc, true, ignored) || !file(0, Source::proc, std::nullopt, minimum_global)) return;
         close(0);
-        if (failure) return;
+        if (failure || nodes.empty()) return;
         const auto checked = deadline.check();
         if (!checked) { fail(checked.error()); return; }
         if (!open(operations.open_root(operations.context, Source::sysfs), 1) ||
             !metadata(1, Source::sysfs, true, ignored)) return;
-        for (const auto node : nodes) {
+        for (const auto& demand : nodes) {
             auto next = deadline.check();
             if (!next) { fail(next.error()); return; }
             std::array<char, 32> name{'n', 'o', 'd', 'e'};
-            const auto rendered = std::to_chars(name.data() + 4, name.data() + name.size() - 1, node.value());
+            const auto rendered = std::to_chars(name.data() + 4, name.data() + name.size() - 1, demand.node.value());
             if (rendered.ec != std::errc{}) { fail(Reason::arithmetic); return; }
             if (!open(operations.open_at(operations.context, owned[1], name.data(), true), 2) ||
-                !metadata(2, Source::sysfs, true, ignored) || !file(2, Source::sysfs, node)) return;
+                !metadata(2, Source::sysfs, true, ignored) || !file(2, Source::sysfs, demand.node, demand.minimum)) return;
             close(2);
             if (failure) return;
         }
@@ -312,6 +313,19 @@ auto read_headroom(std::span<const core::LinuxNumaNodeId> nodes,
     for (std::size_t i = owned.size(); i != 0; --i) close(i - 1);
     if (failure) return std::unexpected{*failure};
     return HeadroomReceipt{nodes.size(), true, true};
+}
+
+auto read_headroom(std::span<const core::LinuxNumaNodeId> nodes,
+    const ReadOperations& operations, ReadLimits limits) noexcept
+    -> std::expected<HeadroomReceipt, Failure> {
+    if (nodes.empty() || nodes.size() > 8) return std::unexpected{Failure{Reason::invalid_input}};
+    using Node = core::LinuxNumaNodeId;
+    const NodeMemoryDemand empty{Node{0}, core::ByteCount::from_base_units(0)};
+    std::array<NodeMemoryDemand, 8> demands{empty, empty, empty, empty, empty, empty, empty, empty};
+    for (std::size_t i = 0; i < nodes.size(); ++i)
+        demands[i] = {nodes[i], core::ByteCount::from_base_units(fixed_node_headroom)};
+    return read_headroom(core::ByteCount::from_base_units(fixed_global_headroom),
+                         std::span{demands}.first(nodes.size()), operations, limits);
 }
 
 struct ResourceLease::State final { Resources outstanding; Resources maximum{stock}; bool poisoned{}; };

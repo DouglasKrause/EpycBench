@@ -4,12 +4,14 @@
 #include <array>
 #include <bit>
 #include <cstdint>
-#include <limits>
-#include <vector>
 
 namespace epycbench::core {
 namespace {
 
+constexpr std::array<std::uint32_t, 8> initial_state{
+    0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
+    0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U,
+};
 constexpr std::array<std::uint32_t, 64> round_constants{
     0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U, 0x3956c25bU, 0x59f111f1U,
     0x923f82a4U, 0xab1c5ed5U, 0xd807aa98U, 0x12835b01U, 0x243185beU, 0x550c7dc3U,
@@ -81,6 +83,27 @@ void compress(std::array<std::uint32_t, 8>& state, const std::byte* block) {
     state[7] += h;
 }
 
+[[nodiscard]] auto finish(std::array<std::uint32_t, 8> state, std::span<const std::byte> remainder,
+                          std::uint64_t total_bytes) noexcept -> std::array<std::byte, 32> {
+    std::array<std::byte, 128> final_blocks{};
+    std::ranges::copy(remainder, final_blocks.begin());
+    final_blocks[remainder.size()] = std::byte{0x80};
+    const auto final_size = remainder.size() < 56U ? 64U : 128U;
+    const auto bit_length = total_bytes * 8U;
+    for (std::size_t index{}; index < 8U; ++index)
+        final_blocks[final_size - 1U - index] = static_cast<std::byte>(bit_length >> (index * 8U));
+    compress(state, final_blocks.data());
+    if (final_size == 128U)
+        compress(state, final_blocks.data() + 64U);
+
+    std::array<std::byte, 32> result{};
+    for (std::size_t word{}; word < state.size(); ++word)
+        for (std::size_t byte{}; byte < 4U; ++byte)
+            result[word * 4U + byte] =
+                static_cast<std::byte>(state[word] >> ((3U - byte) * 8U));
+    return result;
+}
+
 } // namespace
 
 auto Sha256Digest::parse(std::string_view text) -> std::expected<Sha256Digest, Error> {
@@ -134,42 +157,65 @@ auto Sha256Digest::to_hex() const -> std::string {
 auto sha256(std::span<const std::byte> bytes) noexcept -> Sha256Digest {
     static_assert(sizeof(std::size_t) <= sizeof(std::uint64_t),
                   "SHA-256 input length must fit its 64-bit length field");
-    std::array<std::uint32_t, 8> state{0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U,
-                                      0xa54ff53aU, 0x510e527fU, 0x9b05688cU,
-                                      0x1f83d9abU, 0x5be0cd19U};
-    std::size_t offset = 0;
-    while (bytes.size() - offset >= 64U) {
-        compress(state, bytes.data() + offset);
-        offset += 64U;
+    auto state = initial_state;
+    const auto total_size = bytes.size();
+    while (bytes.size() >= 64U) {
+        compress(state, bytes.data());
+        bytes = bytes.subspan(64U);
     }
-
-    const auto remainder = bytes.size() - offset;
-    std::array<std::byte, 128> final_blocks{};
-    std::ranges::copy(bytes.subspan(offset), final_blocks.begin());
-    final_blocks[remainder] = std::byte{0x80};
-    const auto final_size = remainder < 56U ? 64U : 128U;
-    const auto bit_length = static_cast<std::uint64_t>(bytes.size()) * 8U;
-    for (std::size_t index = 0; index < 8U; ++index) {
-        final_blocks[final_size - 1U - index] =
-            static_cast<std::byte>(bit_length >> (index * 8U));
-    }
-    compress(state, final_blocks.data());
-    if (final_size == 128U) {
-        compress(state, final_blocks.data() + 64U);
-    }
-
-    std::array<std::byte, 32> result{};
-    for (std::size_t word = 0; word < state.size(); ++word) {
-        for (std::size_t byte = 0; byte < 4U; ++byte) {
-            result[word * 4U + byte] =
-                static_cast<std::byte>(state[word] >> ((3U - byte) * 8U));
-        }
-    }
-    return Sha256Digest{result};
+    return Sha256Digest{finish(state, bytes, static_cast<std::uint64_t>(total_size))};
 }
 
 auto sha256(std::string_view bytes) noexcept -> Sha256Digest {
     return sha256(std::as_bytes(std::span{bytes.data(), bytes.size()}));
+}
+
+Sha256Stream::Sha256Stream() noexcept : state_{initial_state} {}
+
+auto Sha256Stream::append(std::span<const std::byte> bytes) noexcept
+    -> std::expected<void, AppendError> {
+    if (bytes.size() > maximum_input_bytes - total_)
+        return std::unexpected{AppendError::input_length_overflow};
+    const auto used = static_cast<std::size_t>(total_ % pending_.size());
+    total_ += static_cast<std::uint64_t>(bytes.size());
+    if (used) {
+        const auto space = pending_.size() - used;
+        const auto count = std::min(space, bytes.size());
+        std::ranges::copy(bytes.first(count), pending_.begin() + static_cast<std::ptrdiff_t>(used));
+        if (count < space)
+            return {};
+        compress(state_, pending_.data());
+        bytes = bytes.subspan(count);
+    }
+    while (bytes.size() >= pending_.size()) {
+        compress(state_, bytes.data());
+        bytes = bytes.subspan(pending_.size());
+    }
+    std::ranges::copy(bytes, pending_.begin());
+    return {};
+}
+
+auto Sha256Stream::digest() const noexcept -> Sha256Digest {
+    const auto used = static_cast<std::size_t>(total_ % pending_.size());
+    return Sha256Digest{finish(state_, std::span{pending_}.first(used), total_)};
+}
+
+auto sha256_chunks(std::span<const std::span<const std::byte>> chunks)
+    -> std::expected<Sha256Digest, Error> {
+    std::uint64_t total{};
+    for (const auto chunk : chunks) {
+        if (chunk.size() > Sha256Stream::maximum_input_bytes - total) {
+            auto failure = digest_error("core.digest.input_too_large",
+                "SHA-256 input exceeds its representable bit length", "input_length_overflow");
+            failure.operation = "sha256_chunks";
+            return std::unexpected{std::move(failure)};
+        }
+        total += static_cast<std::uint64_t>(chunk.size());
+    }
+    Sha256Stream stream;
+    for (const auto chunk : chunks)
+        static_cast<void>(stream.append(chunk)); // The full length was checked above.
+    return stream.digest();
 }
 
 } // namespace epycbench::core

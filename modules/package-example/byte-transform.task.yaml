@@ -1,0 +1,13 @@
+schema: epycbench.task/v1
+id: example/byte-transform
+oracle: byte-transform-task.so
+partition_extent_parameters: [elements]
+ports:
+  inputs: {source: bytes}
+  outputs: {transformed: bytes}
+parameters:
+  elements: {type: uint64, min: 1, max: 1048576, default: 64}
+  bias: {type: int64, min: -32, max: 32, default: -3}
+  invert: {type: bool, default: false}
+  scale: {type: float64, min: 1.0, max: 4.0, default: 1.0}
+  pattern: {type: enum, values: [forward, reverse], default: forward}

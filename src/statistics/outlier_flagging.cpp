@@ -116,4 +116,9 @@ auto flag_dependent_load_latency_outliers(std::span<const DependentLoadLatency> 
     return flag_outliers(samples, detail::PrimaryMetricAccess::latency);
 }
 
+auto flag_task_throughput_outliers(std::span<const TaskThroughput> samples)
+    -> std::expected<OutlierFlaggingResult<TaskThroughput>, core::Error> {
+    return flag_outliers(samples, detail::PrimaryMetricAccess::task_throughput);
+}
+
 } // namespace epycbench::statistics

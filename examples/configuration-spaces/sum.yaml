@@ -1,0 +1,49 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+- path: /roles/1/cpus
+  values:
+  - - 0
+  - - 0
+    - 1
+    - 2
+    - 3
+- path: /roles/1/implementation
+  values:
+  - scalar-u64-sum-single-atomic-barrier/v1
+  - scalar-u64-sum-four-atomic-barrier/v1
+- path: /workloads/reduction/parameters/element_count
+  values:
+  - 32768
+  - 1048576
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    reduction:
+      task: epycbench.task.sum-u64.partitioned-aggregation/v1
+      parameters:
+        element_count: 1048576
+        input_seed: 0
+  roles:
+  - id: one-rank
+    workload: reduction
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    tuning:
+      aggregation: flat
+    cpus:
+    - 0
+    numa_node: 0
+  - id: two-ranks
+    workload: reduction
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    tuning:
+      aggregation: flat
+    cpus:
+    - 0
+    - 1
+    numa_node: 0
+  execution:
+    repetitions: 8
+    blocks: 4
+    order_seed: 7

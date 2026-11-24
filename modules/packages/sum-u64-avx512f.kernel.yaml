@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: avx512f-u64-sum/v1
+task: sum-u64.task.yaml
+module: sum-u64-avx512f.so
+tuning: {}

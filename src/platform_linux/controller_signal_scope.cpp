@@ -9,6 +9,8 @@ static_assert(std::atomic<int>::is_always_lock_free);
 static_assert(std::atomic<bool>::is_always_lock_free);
 static_assert(std::atomic<unsigned>::is_always_lock_free);
 constinit SignalScopeState production_state;
+constinit SignalScopeState package_state;
+constinit std::atomic<bool> native_owner{};
 
 void latch(SignalScopeState& state, int signal) noexcept {
     const int reason = signal == SIGINT ? 1 : signal == SIGTERM ? 2 : 0;
@@ -19,6 +21,9 @@ void latch(SignalScopeState& state, int signal) noexcept {
 }
 extern "C" void controller_signal_handler(int signal) noexcept {
     latch(production_state, signal);
+}
+extern "C" void package_controller_signal_handler(int signal) noexcept {
+    latch(package_state, signal);
 }
 auto native_pid(void*) noexcept -> int { return static_cast<int>(::getpid()); }
 auto native_thread(void*) noexcept -> pthread_t { return ::pthread_self(); }
@@ -69,8 +74,28 @@ void SignalScopeAccess::deliver(SignalScopeState& state, int signal) noexcept {
     latch(state, signal);
 }
 auto ControllerSignalScope::acquire() noexcept -> std::expected<void, SignalScopeFailure> {
-    return SignalScopeAccess::acquire(*this, production_state,
-        {nullptr, native_pid, native_thread, native_equal, native_mask, native_action});
+    return acquire_native(production_state,controller_signal_handler,false);
+}
+auto ControllerSignalScope::acquire_for_package() noexcept -> std::expected<void, SignalScopeFailure> {
+    return acquire_native(package_state,package_controller_signal_handler,true);
+}
+auto ControllerSignalScope::acquire_native(SignalScopeState& state,void (*handler)(int),bool reusable) noexcept
+    -> std::expected<void, SignalScopeFailure> {
+    if (state_!=State::fresh)
+        return std::unexpected{failure(SignalScopeStage::admission,SignalScopeReason::invalid_state)};
+    bool unowned{};
+    if (!native_owner.compare_exchange_strong(unowned,true,std::memory_order_acquire))
+        return std::unexpected{failure(SignalScopeStage::admission,SignalScopeReason::already_used)};
+    const auto acquired=SignalScopeAccess::acquire(*this,state,
+        {nullptr,native_pid,native_thread,native_equal,native_mask,native_action},handler);
+    if (acquired) {
+        native_claim_=true;
+        reusable_=reusable;
+    } else if (acquired.error().facts.residual==0) {
+        if (reusable) state.used.store(false,std::memory_order_relaxed);
+        native_owner.store(false,std::memory_order_release);
+    }
+    return acquired;
 }
 auto ControllerSignalScope::snapshot() const noexcept -> SignalScopeClose {
     return {reason(process_state_),
@@ -106,7 +131,7 @@ void ControllerSignalScope::restore(std::optional<SignalScopeFailure>& result,
     if (result) result->facts = snapshot();
 }
 auto SignalScopeAccess::acquire(ControllerSignalScope& owner, SignalScopeState& state,
-                               SignalScopeOperations operations) noexcept
+                               SignalScopeOperations operations,void (*handler)(int)) noexcept
     -> std::expected<void, SignalScopeFailure> {
     if (owner.state_ != ControllerSignalScope::State::fresh)
         return std::unexpected{failure(SignalScopeStage::admission, SignalScopeReason::invalid_state)};
@@ -157,7 +182,7 @@ auto SignalScopeAccess::acquire(ControllerSignalScope& owner, SignalScopeState& 
     if (owner.interrupt_.sa_handler != SIG_DFL || owner.terminate_.sa_handler != SIG_DFL)
         return reject({SignalScopeStage::admission, SignalScopeReason::nondefault_disposition, 0});
     struct sigaction action{};
-    action.sa_handler = controller_signal_handler;
+    action.sa_handler = handler ? handler : controller_signal_handler;
     action.sa_mask = owner.pair_;
     action.sa_flags = 0;
     owner.interrupt_dirty_ = true;
@@ -207,6 +232,13 @@ auto ControllerSignalScope::close() noexcept -> std::expected<SignalScopeClose, 
     if (result) {
         result->facts.observed = observed;
         return std::unexpected{*result};
+    }
+    if (native_claim_) {
+        if (reusable_) {
+            process_state_->first.store(0,std::memory_order_relaxed);
+            process_state_->used.store(false,std::memory_order_relaxed);
+        }
+        native_owner.store(false,std::memory_order_release);
     }
     return SignalScopeClose{observed, 0U};
 }

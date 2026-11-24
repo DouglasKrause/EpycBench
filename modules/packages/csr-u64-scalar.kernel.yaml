@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-spmv-csr/v1
+task: csr-u64.task.yaml
+module: csr-u64-scalar.so
+tuning: {}

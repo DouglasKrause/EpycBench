@@ -1,0 +1,8 @@
+schema: epycbench.task/v1
+id: task.signal.convolution5.u64/v1
+oracle: convolution-u64-oracle.so
+ranks: {min: 1, max: 1}
+work: {unit: output_sample, metric: units_per_second}
+parameters:
+  sample_count: {type: uint64, min: 5, max: 1048576}
+  input_seed: {type: uint64, default: 0}

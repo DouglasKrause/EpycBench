@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: builtin-u64-atomic-separated/v1
+task: false-sharing-counter.task.yaml
+module: false-sharing-counter-separated.so
+tuning: {}

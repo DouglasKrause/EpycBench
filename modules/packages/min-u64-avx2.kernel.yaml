@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: avx2-u64-min/v1
+task: min-u64.task.yaml
+module: min-u64-avx2.so
+tuning: {}

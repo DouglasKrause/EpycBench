@@ -11,9 +11,15 @@ struct PrimaryMetricAccess {
     static constexpr auto value(DependentLoadLatency metric) noexcept -> double {
         return metric.seconds_per_completed_load();
     }
+    static constexpr auto value(TaskThroughput metric) noexcept -> double {
+        return metric.tasks_per_second();
+    }
     static constexpr auto bandwidth(double value) noexcept -> Bandwidth { return Bandwidth{value}; }
     static constexpr auto latency(double value) noexcept -> DependentLoadLatency {
         return DependentLoadLatency{value};
+    }
+    static constexpr auto task_throughput(double value) noexcept -> TaskThroughput {
+        return TaskThroughput{value};
     }
 };
 

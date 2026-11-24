@@ -1,0 +1,10 @@
+schema: epycbench.task/v1
+id: task.gather.page-set.sum.u64/v1
+oracle: gather-page-set-u64-oracle.so
+ranks: {min: 1, max: 1}
+work: {unit: indexed_lookup, metric: units_per_second}
+parameters:
+  value_count: {type: uint64, min: 508, max: 1048572}
+  index_count: {type: uint64, min: 1, max: 1048576}
+  input_seed: {type: uint64, default: 0}
+  index_pattern: {type: enum, values: [set-fixed, set-cycle, pages-compact, pages-spread]}

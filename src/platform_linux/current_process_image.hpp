@@ -1,5 +1,6 @@
 #pragma once
 
+#include "epycbench/core/digest.hpp"
 #include "platform_linux/process_ipc_operations.hpp"
 
 #include <array>
@@ -9,7 +10,7 @@
 
 namespace epycbench::platform_linux::detail {
 
-enum class ImageStage { pid, open, normalization, stat, alias, arguments, recheck, spawn, close };
+enum class ImageStage { pid, open, normalization, stat, alias, arguments, recheck, spawn, close, read };
 enum class ImageReason {
     invalid_state,
     wrong_process,
@@ -46,6 +47,7 @@ class CurrentProcessImage final {
     auto operator=(const CurrentProcessImage&) -> CurrentProcessImage& = delete;
     ~CurrentProcessImage() = default;
     [[nodiscard]] auto active() const noexcept -> bool;
+    [[nodiscard]] auto digest() const -> std::expected<core::Sha256Digest, ImageFailure>;
     [[nodiscard]] auto spawn(std::span<const std::string_view> arguments,
                              const RunnerIpcEndpoints&) noexcept
         -> std::expected<ChildProcess, ImageFailure>;

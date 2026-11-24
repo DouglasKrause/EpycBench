@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: unroll4-u64-bfs/v1
+task: bfs-u64.task.yaml
+module: bfs-u64-unroll4.so
+tuning: {}

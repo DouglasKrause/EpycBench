@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: builtin-u64-spsc-direct/v1
+task: spsc-queue.task.yaml
+module: spsc-queue-direct.so
+tuning: {}

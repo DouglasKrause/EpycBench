@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar
+task: byte-transform.task.yaml
+module: byte-transform-scalar.so
+tuning: {}

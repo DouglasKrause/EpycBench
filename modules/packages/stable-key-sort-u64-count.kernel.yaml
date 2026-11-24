@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: count16-stable-key-sort-u64/v1
+task: stable-key-sort-u64.task.yaml
+module: stable-key-sort-u64-count.so
+tuning: {}

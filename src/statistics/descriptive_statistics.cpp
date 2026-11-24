@@ -160,4 +160,9 @@ auto summarize_dependent_load_latency(std::span<const DependentLoadLatency> samp
     return summarize(samples, detail::PrimaryMetricAccess::latency);
 }
 
+auto summarize_task_throughput(std::span<const TaskThroughput> samples)
+    -> std::expected<DescriptiveStatistics<TaskThroughput>, core::Error> {
+    return summarize(samples, detail::PrimaryMetricAccess::task_throughput);
+}
+
 } // namespace epycbench::statistics

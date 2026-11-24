@@ -1,0 +1,7 @@
+schema: epycbench.task/v1
+id: task.lock.counter.u64/v1
+oracle: lock-counter-oracle.so
+ranks: {min: 2, max: 2, distinct_cores: true}
+collective: true
+work: {unit: increment, metric: units_per_second}
+parameters: {}

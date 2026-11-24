@@ -1,0 +1,6 @@
+schema: epycbench.kernel/v1
+id: blocked
+task: byte-transform.task.yaml
+module: byte-transform-blocked.so
+tuning:
+  block_size: {type: uint64, min: 1, max: 64, default: 8}

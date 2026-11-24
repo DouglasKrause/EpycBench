@@ -1,5 +1,7 @@
 #include "platform_linux/current_process_image.hpp"
 
+#include "core/binary_digest.hpp"
+
 #include <algorithm>
 #include <cerrno>
 #include <charconv>
@@ -7,6 +9,7 @@
 #include <limits>
 #include <new>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <utility>
 
 namespace epycbench::platform_linux::detail {
@@ -169,6 +172,51 @@ auto CurrentProcessImage::acquire() noexcept -> std::expected<CurrentProcessImag
         production_spawn_operations(), production_process_operations());
 }
 auto CurrentProcessImage::active() const noexcept -> bool { return descriptor_.active(); }
+auto CurrentProcessImage::digest() const -> std::expected<core::Sha256Digest, ImageFailure> {
+    if (!active())
+        return std::unexpected{failure(ImageStage::read, ImageReason::invalid_state)};
+    if (::getpid() != process_)
+        return std::unexpected{failure(ImageStage::read, ImageReason::wrong_process)};
+    const auto opened = image_.open_image(image_.context, alias_.data(), O_RDONLY | O_CLOEXEC);
+    if (!descriptor_value(opened.value))
+        return std::unexpected{native_failure(ImageStage::read, opened)};
+    auto readable = own(static_cast<int>(opened.value), production_descriptor_operations());
+    if (opened.error_number)
+        return std::unexpected{native_failure(ImageStage::read, opened)};
+    const auto check = [&]() -> std::expected<void, ImageFailure> {
+        ImageMetadata current{};
+        const auto status = image_.stat_image(image_.context, readable.native_handle(), &current);
+        if (failed(status))
+            return std::unexpected{native_failure(ImageStage::stat, status)};
+        if (!same(metadata_, current))
+            return std::unexpected{failure(ImageStage::stat, ImageReason::metadata_changed)};
+        return {};
+    };
+    if (auto verified = check(); !verified)
+        return std::unexpected{verified.error()};
+    core::BinaryDigest hash;
+    std::array<std::byte, 64U * 1024U> buffer{};
+    auto remaining = static_cast<std::uint64_t>(metadata_.size);
+    while (remaining) {
+        const auto size = std::min(remaining, static_cast<std::uint64_t>(buffer.size()));
+        const auto count = ::read(readable.native_handle(), buffer.data(), static_cast<std::size_t>(size));
+        if (count < 0 && errno == EINTR) continue;
+        if (count < 0)
+            return std::unexpected{native_failure(ImageStage::read, {count, errno})};
+        if (count == 0)
+            return std::unexpected{failure(ImageStage::read, ImageReason::metadata_changed)};
+        const auto bytes = static_cast<std::size_t>(count);
+        if (!hash.append(std::span{buffer}.first(bytes)))
+            return std::unexpected{failure(ImageStage::read, ImageReason::contained_failure)};
+        remaining -= bytes;
+    }
+    if (auto verified = check(); !verified)
+        return std::unexpected{verified.error()};
+    const auto digest = hash.finish();
+    if (!digest)
+        return std::unexpected{failure(ImageStage::read, ImageReason::contained_failure)};
+    return *digest;
+}
 auto CurrentProcessImage::close() noexcept -> std::expected<void, ImageFailure> {
     const auto result = DescriptorAccess::close_raw(descriptor_);
     if (failed(result))

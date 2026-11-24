@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: byte-per-page/v1
+task: first-touch.task.yaml
+module: first-touch-byte-per-page.so
+tuning: {}

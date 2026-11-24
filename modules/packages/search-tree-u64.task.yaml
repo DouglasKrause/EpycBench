@@ -1,0 +1,9 @@
+schema: epycbench.task/v1
+id: task.search.lower-bound-tree.u64/v1
+oracle: search-tree-u64-oracle.so
+ranks: {min: 1, max: 1}
+work: {unit: classified_query, metric: units_per_second}
+parameters:
+  query_count: {type: uint64, min: 16, max: 1048576}
+  query_order: {type: enum, values: [grouped, permuted], default: grouped}
+  input_seed: {type: uint64, default: 0}

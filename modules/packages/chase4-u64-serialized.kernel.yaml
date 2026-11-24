@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-chase4-serialized/v1
+task: chase4-u64.task.yaml
+module: chase4-u64-serialized.so
+tuning: {}

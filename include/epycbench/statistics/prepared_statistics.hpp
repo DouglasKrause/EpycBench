@@ -40,17 +40,25 @@ struct PreparedBootstrapWorkspace final {
     -> std::expected<Bandwidth, PreparedStatisticsFailure>;
 [[nodiscard]] auto make_dependent_load_latency_prepared(core::Duration, core::WorkCount) noexcept
     -> std::expected<DependentLoadLatency, PreparedStatisticsFailure>;
+[[nodiscard]] auto make_task_throughput_prepared(core::WorkCount, core::Duration) noexcept
+    -> std::expected<TaskThroughput, PreparedStatisticsFailure>;
 [[nodiscard]] auto block_bandwidth_representatives_prepared(
     std::array<Bandwidth, 2>, std::array<Bandwidth, 2>) noexcept
     -> std::expected<BlockRepresentatives<Bandwidth>, PreparedStatisticsFailure>;
 [[nodiscard]] auto block_dependent_load_latency_representatives_prepared(
     std::array<DependentLoadLatency, 2>, std::array<DependentLoadLatency, 2>) noexcept
     -> std::expected<BlockRepresentatives<DependentLoadLatency>, PreparedStatisticsFailure>;
+[[nodiscard]] auto block_task_throughput_representatives_prepared(
+    std::array<TaskThroughput, 2>, std::array<TaskThroughput, 2>) noexcept
+    -> std::expected<BlockRepresentatives<TaskThroughput>, PreparedStatisticsFailure>;
 [[nodiscard]] auto bandwidth_log_effect_prepared(
     const BlockRepresentatives<Bandwidth>&) noexcept
     -> std::expected<PairedLogEffect, PreparedStatisticsFailure>;
 [[nodiscard]] auto dependent_load_latency_log_effect_prepared(
     const BlockRepresentatives<DependentLoadLatency>&) noexcept
+    -> std::expected<PairedLogEffect, PreparedStatisticsFailure>;
+[[nodiscard]] auto task_throughput_log_effect_prepared(
+    const BlockRepresentatives<TaskThroughput>&) noexcept
     -> std::expected<PairedLogEffect, PreparedStatisticsFailure>;
 [[nodiscard]] auto evaluate_adaptive_stopping_prepared(
     OrientedGeometricRatio, const OrientedGeometricRatioInterval&,
@@ -64,6 +72,9 @@ struct PreparedBootstrapWorkspace final {
     std::span<const DependentLoadLatency>,
     PreparedDescriptiveWorkspace<DependentLoadLatency>) noexcept
     -> std::expected<DescriptiveStatistics<DependentLoadLatency>, PreparedStatisticsFailure>;
+[[nodiscard]] auto summarize_task_throughput_prepared(
+    std::span<const TaskThroughput>, PreparedDescriptiveWorkspace<TaskThroughput>) noexcept
+    -> std::expected<DescriptiveStatistics<TaskThroughput>, PreparedStatisticsFailure>;
 
 [[nodiscard]] auto flag_bandwidth_outliers_prepared(
     std::span<const Bandwidth>, PreparedOutlierWorkspace<Bandwidth>) noexcept
@@ -72,6 +83,9 @@ struct PreparedBootstrapWorkspace final {
     std::span<const DependentLoadLatency>,
     PreparedOutlierWorkspace<DependentLoadLatency>) noexcept
     -> std::expected<OutlierFlaggingResult<DependentLoadLatency>, PreparedStatisticsFailure>;
+[[nodiscard]] auto flag_task_throughput_outliers_prepared(
+    std::span<const TaskThroughput>, PreparedOutlierWorkspace<TaskThroughput>) noexcept
+    -> std::expected<OutlierFlaggingResult<TaskThroughput>, PreparedStatisticsFailure>;
 
 [[nodiscard]] auto aggregate_log_effects_prepared(
     std::span<const PairedLogEffect>, std::span<double> sorted) noexcept

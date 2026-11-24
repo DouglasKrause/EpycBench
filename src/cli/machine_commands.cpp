@@ -138,7 +138,7 @@ auto view_machine(topology::cli::Environment& environment,std::ostream& output,s
             status=files::file_status(std::filesystem::path{saved_name});
             if(!status||!status->exists)return failed(error,"Machine architecture: inspection was not saved.");
         }
-        if(!environment.read_file||!environment.deserialize)
+        if(!environment.read_bounded_file||!environment.deserialize)
             return failed(error,"Machine architecture: reader unavailable.",1);
         auto bytes=environment.read_file(std::filesystem::path{saved_name});
         if(!bytes)return failed(error,"Machine architecture: could not read the saved inspection.");

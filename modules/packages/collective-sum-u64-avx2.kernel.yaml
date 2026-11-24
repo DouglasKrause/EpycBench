@@ -1,0 +1,6 @@
+schema: epycbench.kernel/v1
+id: avx2-u64-sum-atomic-barrier/v1
+task: collective-sum-u64.task.yaml
+module: collective-sum-u64-avx2.so
+tuning:
+  aggregation: {type: enum, values: [flat, topology-tree], default: flat}

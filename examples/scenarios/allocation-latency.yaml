@@ -1,0 +1,16 @@
+schema: epycbench.scenario/packages-v1
+mode: standalone
+workloads:
+  map-request:
+    task: memory.allocation-latency/v1
+    parameters: {requested_bytes: 4097}
+roles:
+  - id: allocate
+    workload: map-request
+    implementation: anonymous-mmap/v1
+    cpus: [0]
+    service_cpu: 1
+execution: {repetitions: 1, blocks: 1}
+output:
+  directory: /path/to/private/results
+  format: json

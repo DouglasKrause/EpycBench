@@ -64,6 +64,7 @@ class ControllerSignalScope final {
     auto operator=(ControllerSignalScope&&) -> ControllerSignalScope& = delete;
     ~ControllerSignalScope() noexcept;
     [[nodiscard]] auto acquire() noexcept -> std::expected<void, SignalScopeFailure>;
+    [[nodiscard]] auto acquire_for_package() noexcept -> std::expected<void, SignalScopeFailure>;
     // Nonconsuming admission on the installing process/thread; no signal or mask operations.
     [[nodiscard]] auto validate() const noexcept -> std::expected<void, SignalScopeFailure>;
     [[nodiscard]] auto observe() const noexcept -> ControllerSignal;
@@ -72,6 +73,8 @@ class ControllerSignalScope final {
   private:
     enum class State { fresh, active, terminal };
     [[nodiscard]] auto snapshot() const noexcept -> SignalScopeClose;
+    [[nodiscard]] auto acquire_native(SignalScopeState&, void (*handler)(int), bool reusable) noexcept
+        -> std::expected<void, SignalScopeFailure>;
     void restore(std::optional<SignalScopeFailure>&, bool restore_mask) noexcept;
     void publish_residue() noexcept;
     State state_{State::fresh};
@@ -86,12 +89,14 @@ class ControllerSignalScope final {
     bool interrupt_dirty_{};
     bool terminate_dirty_{};
     bool mask_dirty_{};
+    bool native_claim_{};
+    bool reusable_{};
     friend class SignalScopeAccess;
 };
 class SignalScopeAccess final {
   public:
     [[nodiscard]] static auto acquire(ControllerSignalScope&, SignalScopeState&,
-                                      SignalScopeOperations) noexcept
+                                      SignalScopeOperations, void (*handler)(int) = nullptr) noexcept
         -> std::expected<void, SignalScopeFailure>;
     static void deliver(SignalScopeState&, int signal) noexcept;
 };

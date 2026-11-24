@@ -1,0 +1,19 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  work:
+    task: task.chase4.u64/v1
+    parameters: {"nodes_per_lane": 4097, "input_seed": 0}
+roles:
+  - id: baseline
+    workload: work
+    implementation: scalar-u64-chase4-serialized/v1
+    cpus: [0]
+    numa_node: 0
+  - id: candidate
+    workload: work
+    implementation: scalar-u64-chase4-interleaved/v1
+    cpus: [0]
+    numa_node: 0
+execution: {"repetitions": 8, "blocks": 4, "order_seed": 918273645}
+output: {directory: /tmp/epycbench-chase4-u64, format: json}

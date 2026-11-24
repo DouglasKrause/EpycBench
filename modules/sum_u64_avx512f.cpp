@@ -1,0 +1,62 @@
+#include "task_module_support.hpp"
+
+#if defined(__x86_64__)
+#include <immintrin.h>
+#endif
+
+namespace {
+constexpr int unsupported_isa = 2;
+
+auto prepare_avx512f(const EpycBenchKernelRequestV2* request) noexcept -> int {
+    if (const auto invalid = epycbench::module_detail::prepare_sum_u64(request); invalid != 0)
+        return invalid;
+#if defined(__x86_64__)
+    if (__builtin_cpu_supports("avx512f")) return 0;
+#endif
+    return unsupported_isa;
+}
+} // namespace
+
+#if defined(__x86_64__)
+// This symbol contains the actual repeated work inspected by the basic checker.
+// The ABI callback below admits the ISA before entering it.
+extern "C" [[gnu::visibility("protected"), gnu::target("avx512f"), gnu::noinline]]
+auto epycbench_sum_u64_avx512f_body(const unsigned char* input, std::size_t count,
+                                   std::uint64_t repetitions) noexcept -> std::uint64_t {
+    static_assert(std::endian::native == std::endian::little);
+    constexpr std::size_t lanes = 8;
+    std::uint64_t folded{};
+    for (std::uint64_t repetition{}; repetition < repetitions; ++repetition) {
+        asm volatile("" ::: "memory");
+        auto accumulators = _mm512_setzero_si512();
+        std::size_t index{};
+        for (; count - index >= lanes; index += lanes) {
+            const auto* words = input + index * sizeof(std::uint64_t);
+            const auto values = _mm512_loadu_si512(words);
+            accumulators = _mm512_add_epi64(accumulators, values);
+        }
+        alignas(64) std::uint64_t lane_sums[lanes];
+        _mm512_store_si512(lane_sums, accumulators);
+        auto sum = lane_sums[0] + lane_sums[1] + lane_sums[2] + lane_sums[3] +
+                   lane_sums[4] + lane_sums[5] + lane_sums[6] + lane_sums[7];
+        for (; index < count; ++index)
+            sum += epycbench::module_detail::load_sum_word(input, index);
+        folded += sum;
+    }
+    asm volatile("" ::: "memory");
+    return folded;
+}
+#endif
+
+extern "C" [[gnu::visibility("default"), gnu::noinline]] auto epycbench_kernel_execute_v2(
+    const EpycBenchKernelRequestV2* request, std::uint64_t* checksum) noexcept -> int {
+    if (!checksum) return 1;
+    if (const auto status = prepare_avx512f(request); status != 0) return status;
+#if defined(__x86_64__)
+    const auto count = static_cast<std::size_t>(request->bytes / sizeof(std::uint64_t));
+    *checksum = epycbench_sum_u64_avx512f_body(request->data, count, request->repetitions);
+    return 0;
+#else
+    return unsupported_isa;
+#endif
+}

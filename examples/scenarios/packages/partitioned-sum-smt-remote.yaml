@@ -1,0 +1,22 @@
+# Keep the SMT sibling CPUs fixed and vary their memory node.
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  work:
+    task: epycbench.task.sum-u64.partitioned-aggregation/v1
+    parameters: {"element_count": 1048576, "input_seed": 0}
+roles:
+  - id: local
+    workload: work
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    cpus: [0, 16]
+    numa_node: 0
+    tuning: {aggregation: flat}
+  - id: remote
+    workload: work
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    cpus: [0, 16]
+    numa_node: 1
+    tuning: {aggregation: flat}
+execution: {"repetitions": 8, "blocks": 4, "order_seed": 918273645}
+output: {directory: /tmp/epycbench-partitioned-sum-smt-remote, format: json}

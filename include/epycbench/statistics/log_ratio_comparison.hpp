@@ -69,6 +69,10 @@ class LogRatioComparison {
     const BlockRepresentatives<DependentLoadLatency>& representatives)
     -> std::expected<PairedLogEffect, core::Error>;
 
+[[nodiscard]] auto task_throughput_log_effect(
+    const BlockRepresentatives<TaskThroughput>& representatives)
+    -> std::expected<PairedLogEffect, core::Error>;
+
 [[nodiscard]] auto aggregate_log_effects(std::span<const PairedLogEffect> effects)
     -> std::expected<LogRatioComparison, core::Error>;
 

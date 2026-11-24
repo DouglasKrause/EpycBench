@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-prefix-scan/v1
+task: prefix-scan-u64.task.yaml
+module: prefix-scan-u64-scalar.so
+tuning: {}

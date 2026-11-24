@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: builtin-u64-lock-tas/v1
+task: lock-counter.task.yaml
+module: lock-counter-tas.so
+tuning: {}

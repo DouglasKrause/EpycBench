@@ -94,6 +94,12 @@ auto dependent_load_latency_log_effect(
                             representatives.second().seconds_per_completed_load());
 }
 
+auto task_throughput_log_effect(const BlockRepresentatives<TaskThroughput>& representatives)
+    -> std::expected<PairedLogEffect, core::Error> {
+    return calculate_effect(representatives.second().tasks_per_second(),
+                            representatives.first().tasks_per_second());
+}
+
 auto aggregate_log_effects(std::span<const PairedLogEffect> effects)
     -> std::expected<LogRatioComparison, core::Error> {
     if (effects.empty()) {

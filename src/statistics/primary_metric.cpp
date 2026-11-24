@@ -36,6 +36,21 @@ auto Bandwidth::create(core::ByteCount bytes, core::Duration elapsed) noexcept
     return Bandwidth{value};
 }
 
+auto TaskThroughput::create(core::WorkCount completed_tasks, core::Duration elapsed) noexcept
+    -> std::expected<TaskThroughput, core::Error> {
+    if (completed_tasks.value() == 0U || elapsed.value() == 0U) {
+        return std::unexpected{
+            error("statistics.primary_metric.invalid_input", "zero_tasks_or_duration")};
+    }
+    const double value = static_cast<double>(completed_tasks.value()) * nanoseconds_per_second /
+                         static_cast<double>(elapsed.value());
+    if (!std::isfinite(value) || value <= 0.0) {
+        return std::unexpected{
+            error("statistics.primary_metric.unrepresentable", "nonfinite_or_nonpositive")};
+    }
+    return TaskThroughput{value};
+}
+
 auto DependentLoadLatency::create(core::Duration elapsed,
                                   core::WorkCount completed_work) noexcept
     -> std::expected<DependentLoadLatency, core::Error> {

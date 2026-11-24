@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u14-varint-masked-lookahead/v1
+task: varint14.task.yaml
+module: varint14-masked.so
+tuning: {}

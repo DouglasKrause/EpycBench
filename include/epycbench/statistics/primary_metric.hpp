@@ -43,4 +43,20 @@ class DependentLoadLatency {
     double value_;
 };
 
+class TaskThroughput {
+  public:
+    [[nodiscard]] static auto create(core::WorkCount completed_tasks,
+                                     core::Duration elapsed) noexcept
+        -> std::expected<TaskThroughput, core::Error>;
+
+    [[nodiscard]] constexpr auto tasks_per_second() const noexcept -> double { return value_; }
+    [[nodiscard]] constexpr auto seconds_per_task() const noexcept -> double { return 1.0 / value_; }
+    constexpr auto operator<=>(const TaskThroughput&) const noexcept = default;
+
+  private:
+    friend struct detail::PrimaryMetricAccess;
+    constexpr explicit TaskThroughput(double value) noexcept : value_{value} {}
+    double value_;
+};
+
 } // namespace epycbench::statistics

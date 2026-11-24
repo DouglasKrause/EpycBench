@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-transpose-row/v1
+task: transpose-u64.task.yaml
+module: transpose-u64-scalar.so
+tuning: {}

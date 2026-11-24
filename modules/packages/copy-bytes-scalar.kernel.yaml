@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-copy-bytes/v1
+task: copy-bytes.task.yaml
+module: copy-bytes-scalar.so
+tuning: {}

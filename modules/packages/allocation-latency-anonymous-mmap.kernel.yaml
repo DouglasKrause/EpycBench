@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: anonymous-mmap/v1
+task: allocation-latency.task.yaml
+module: allocation-latency-anonymous-mmap.so
+tuning: {}

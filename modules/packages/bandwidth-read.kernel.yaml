@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-sequential/v1
+task: bandwidth.task.yaml
+module: bandwidth-read.so
+tuning: {}

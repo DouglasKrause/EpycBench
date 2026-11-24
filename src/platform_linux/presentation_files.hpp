@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace epycbench::platform_linux::presentation_files {
 enum class Stage { argument, directory, identity, open, write, close, status };
@@ -25,6 +26,9 @@ struct TerminalDimensions {
 [[nodiscard]] auto save_numbered(const std::filesystem::path& directory,
     std::string_view filename,std::string_view bytes) -> std::expected<std::string,Failure>;
 [[nodiscard]] auto file_status(const std::filesystem::path&) -> std::expected<FileStatus,Failure>;
+[[nodiscard]] auto regular_leaf_names(const std::filesystem::path&, std::string_view suffix,
+    std::size_t maximum_entries) -> std::expected<std::vector<std::string>,Failure>;
 [[nodiscard]] auto stdout_is_terminal() noexcept -> bool;
+[[nodiscard]] auto interactive_terminal() noexcept -> bool;
 [[nodiscard]] auto terminal_dimensions() noexcept -> TerminalDimensions;
 } // namespace epycbench::platform_linux::presentation_files

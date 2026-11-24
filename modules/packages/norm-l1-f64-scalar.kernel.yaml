@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-f64-norm-l1-single/v1
+task: norm-l1-f64.task.yaml
+module: norm-l1-f64-scalar.so
+tuning: {}

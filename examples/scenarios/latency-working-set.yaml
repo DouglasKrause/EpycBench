@@ -1,0 +1,19 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  chain:
+    task: memory.latency.dependent-load/v1
+    parameters: {"working_set_lines": 131072, "chain_seed": 23, "start_seed": 918273645}
+roles:
+  - id: local
+    workload: chain
+    implementation: scalar-u64-random-cycle/v1
+    cpus: [0]
+    numa_node: 0
+  - id: remote
+    workload: chain
+    implementation: scalar-u64-random-cycle/v1
+    cpus: [0]
+    numa_node: 1
+execution: {"repetitions": 1048576, "blocks": 4, "order_seed": 918273645}
+output: {directory: /tmp/epycbench-latency-working-set, format: json}

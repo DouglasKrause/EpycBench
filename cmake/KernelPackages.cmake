@@ -1,0 +1,14 @@
+add_library(epycbench_restricted_yaml STATIC
+    src/scenario/restricted_yaml_parser.cpp
+    src/scenario/scalar_resolver.cpp)
+target_include_directories(epycbench_restricted_yaml PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(epycbench_restricted_yaml PUBLIC EpycBench::core PRIVATE PkgConfig::LIBFYAML)
+epycbench_enable_build_options(epycbench_restricted_yaml)
+epycbench_enable_warnings(epycbench_restricted_yaml)
+
+add_library(epycbench_kernel_package_manifest STATIC src/kernel/package_manifest.cpp)
+target_include_directories(epycbench_kernel_package_manifest PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(epycbench_kernel_package_manifest PUBLIC EpycBench::core PRIVATE epycbench_restricted_yaml)
+epycbench_enable_build_options(epycbench_kernel_package_manifest)
+epycbench_enable_warnings(epycbench_kernel_package_manifest)
+

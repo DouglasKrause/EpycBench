@@ -1,0 +1,11 @@
+schema: epycbench.task/v1
+id: epycbench.task.sum-u64.partitioned-aggregation/v1
+oracle: collective-sum-u64-oracle.so
+ranks: {min: 1, max: 1024}
+collective: true
+control_inputs: [reduction_tree]
+shared_placement: owner_cpu_local
+work: {unit: element, metric: units_per_second}
+parameters:
+  element_count: {type: uint64, min: 1, max: 2305843009213693951}
+  input_seed: {type: uint64, default: 0}

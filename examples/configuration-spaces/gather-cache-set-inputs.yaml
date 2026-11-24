@@ -1,0 +1,39 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+- path: /workloads/problem/parameters/index_pattern
+  values:
+  - set-fixed
+  - set-cycle
+- path: /workloads/problem/parameters/input_seed
+  values:
+  - 1
+  - 19
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    problem:
+      task: task.gather.page-set.sum.u64/v1
+      parameters:
+        value_count: 8188
+        index_count: 256
+        index_pattern: set-fixed
+        input_seed: 1
+  roles:
+  - id: baseline
+    workload: problem
+    implementation: scalar-u64-gather-set-single/v1
+    cpus:
+    - 0
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: scalar-u64-gather-set-four/v1
+    cpus:
+    - 0
+    numa_node: 0
+  execution:
+    repetitions: 32
+    blocks: 4
+    order_seed: 7

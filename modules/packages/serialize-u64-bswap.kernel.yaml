@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-serialize-bswap/v1
+task: serialize-u64.task.yaml
+module: serialize-u64-bswap.so
+tuning: {}

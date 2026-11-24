@@ -1,0 +1,9 @@
+schema: epycbench.task/v1
+id: task.copy.bytes/v1
+oracle: copy-bytes-oracle.so
+partition_extent_parameters: [byte_count]
+ports: {inputs: {input: bytes}, outputs: {output: bytes, checksum: u64-le}}
+work: {unit: byte, metric: units_per_second}
+parameters:
+  byte_count: {type: uint64, min: 1, max: 9223372036854775807}
+  input_seed: {type: uint64, default: 0}

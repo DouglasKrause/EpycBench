@@ -1,0 +1,19 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  problem:
+    task: task.compact.even.u64/v1
+    parameters: {element_count: 257, input_seed: 73}
+roles:
+  - id: baseline
+    workload: problem
+    implementation: scalar-u64-compact-even/v1
+    cpus: [0]
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: mask4-u64-compact-even/v1
+    cpus: [0]
+    numa_node: 0
+execution: {repetitions: 32, blocks: 4, order_seed: 7}
+output: {directory: /tmp/epycbench-compact-u64, format: json}

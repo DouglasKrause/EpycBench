@@ -1,0 +1,7 @@
+schema: epycbench.task/v1
+id: task.atomic.counter.u64/v1
+oracle: shared-atomic-counter-oracle.so
+ranks: {min: 2, max: 2}
+collective: true
+work: {unit: increment, metric: units_per_second}
+parameters: {}

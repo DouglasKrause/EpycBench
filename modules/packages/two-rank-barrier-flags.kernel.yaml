@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: builtin-u64-barrier-flags/v1
+task: two-rank-barrier.task.yaml
+module: two-rank-barrier-flags.so
+tuning: {}

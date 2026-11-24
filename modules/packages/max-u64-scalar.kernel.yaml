@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-max-single/v1
+task: max-u64.task.yaml
+module: max-u64-scalar.so
+tuning: {}

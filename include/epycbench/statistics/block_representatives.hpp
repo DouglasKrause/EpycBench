@@ -30,4 +30,8 @@ template <PrimaryMetric Metric> class BlockRepresentatives {
     std::array<DependentLoadLatency, 2> second)
     -> std::expected<BlockRepresentatives<DependentLoadLatency>, core::Error>;
 
+[[nodiscard]] auto block_task_throughput_representatives(
+    std::array<TaskThroughput, 2> first, std::array<TaskThroughput, 2> second)
+    -> std::expected<BlockRepresentatives<TaskThroughput>, core::Error>;
+
 } // namespace epycbench::statistics

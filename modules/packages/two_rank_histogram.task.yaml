@@ -1,0 +1,9 @@
+schema: epycbench.task/v1
+id: task.group.histogram-weighted.u64.two-rank/v1
+oracle: two_rank_histogram-oracle.so
+ranks: {min: 2, max: 2, distinct_cores: true}
+collective: true
+collective_finalizer: true
+parameters:
+  record_count: {type: uint64, min: 1, max: 1048576}
+  input_seed: {type: uint64, default: 0}

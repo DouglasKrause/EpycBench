@@ -7,6 +7,17 @@ pkg_check_modules(LIBFYAML REQUIRED IMPORTED_TARGET "libfyaml>=0.9.6")
 find_package(CLI11 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(ftxui 6.1.9 EXACT CONFIG QUIET)
+if(NOT TARGET ftxui::component)
+    include(FetchContent)
+    set(FTXUI_ENABLE_INSTALL OFF CACHE BOOL "Install the bundled FTXUI dependency")
+    FetchContent_Declare(ftxui
+        URL https://codeload.github.com/ArthurSonzogni/FTXUI/tar.gz/5cfed50702f52d51c1b189b5f97f8beaf5eaa2a6
+        URL_HASH SHA256=7a61f2b5519ce42840da9f035297c5e61e4ed8210b9ed990a0138bf31e48ba59
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        SYSTEM)
+    FetchContent_MakeAvailable(ftxui)
+endif()
 if(BUILD_TESTING)
     find_package(Catch2 3 CONFIG REQUIRED)
 else()

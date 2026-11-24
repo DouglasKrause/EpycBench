@@ -1,0 +1,14 @@
+schema: epycbench.scenario/packages-v1
+mode: standalone
+workloads:
+  stream:
+    task: memory.bandwidth.read/v1
+    parameters: {working_set_lines: 65536}
+roles:
+  - id: reader
+    workload: stream
+    implementation: scalar-u64-sequential/v1
+    cpus: [0]
+    numa_node: 0
+execution: {repetitions: 8, blocks: 4}
+output: {directory: /tmp/epycbench-bandwidth-read, format: json}

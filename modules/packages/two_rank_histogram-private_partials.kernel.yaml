@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: private_partials
+task: two_rank_histogram.task.yaml
+module: two_rank_histogram-private_partials.so
+tuning: {}

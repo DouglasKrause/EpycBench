@@ -1,0 +1,8 @@
+schema: epycbench.task/v1
+id: task.scatter.keyed.u64/v1
+oracle: scatter-u64-oracle.so
+ranks: {min: 1, max: 1}
+work: {unit: keyed_record, metric: units_per_second}
+parameters:
+  element_count: {type: uint64, min: 1, max: 65536}
+  input_seed: {type: uint64, default: 0}

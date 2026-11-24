@@ -1,6 +1,7 @@
 #include "epycbench/platform_linux/memory_mapping.hpp"
 
-#include "platform_linux/mapping_operations.hpp"
+#include "platform_linux/hugetlb_backing.hpp"
+#include "platform_linux/timed_anonymous_mapping.hpp"
 
 #include <cerrno>
 #include <cstdint>
@@ -195,26 +196,23 @@ auto production_mapping_operations() noexcept -> MappingOperations {
     };
 }
 
-void AnonymousMappingAccess::validate_address_range(void* address, std::size_t length) {
+namespace {
+void validate_mapping_range(void* address, std::size_t length) {
     const auto start = reinterpret_cast<std::uintptr_t>(address);
     if (length - 1U > std::numeric_limits<std::uintptr_t>::max() - start) {
         throw std::overflow_error{"mapping address range overflow"};
     }
 }
 
-auto AnonymousMappingAccess::create(std::size_t length, const MappingOperations& operations,
-                                    RangeValidator validate_range)
-    -> std::expected<AnonymousMapping, core::Error> {
+auto request_mapping(std::size_t length, const MappingOperations& operations, int extra_flags = 0) noexcept -> RawMapResult {
+    return operations.map_anonymous(operations.context, length, PROT_READ | PROT_WRITE,
+                                    MAP_PRIVATE | MAP_ANONYMOUS | extra_flags, -1, 0);
+}
+
+auto finish_mapping(std::size_t length, const MappingOperations& operations, RawMapResult result,
+                    RangeValidator validate_range) -> std::expected<AnonymousMapping, core::Error> {
     constexpr std::string_view operation = "AnonymousMapping.create";
-    if (length == 0) {
-        return std::unexpected{mapping_error("linux.mapping.invalid_length",
-                                             "Anonymous mapping length must not be zero", operation,
-                                             "zero_length")};
-    }
     try {
-        const auto result = operations.map_anonymous(operations.context, length,
-                                                     PROT_READ | PROT_WRITE,
-                                                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (result.address == MAP_FAILED) {
             if (result.error_number == 0) {
                 return std::unexpected{unexpected_status(operation)};
@@ -249,8 +247,7 @@ auto AnonymousMappingAccess::create(std::size_t length, const MappingOperations&
             static_cast<void>(operations.unmap(operations.context, result.address, length));
             throw;
         }
-        return AnonymousMapping{result.address, length, operations.context, operations.unmap,
-                                operations.protect, operations.advise};
+        return AnonymousMappingAccess::adopt(result.address, length, operations);
     } catch (const std::bad_alloc&) {
         return std::unexpected{mapping_error("linux.mapping.create_failed",
                                              "Anonymous mapping creation failed", operation,
@@ -260,6 +257,39 @@ auto AnonymousMappingAccess::create(std::size_t length, const MappingOperations&
     } catch (...) {
         return std::unexpected{contained_unknown_failure(operation)};
     }
+}
+
+} // namespace
+
+void AnonymousMappingAccess::validate_address_range(void* address, std::size_t length) {
+    validate_mapping_range(address, length);
+}
+
+auto AnonymousMappingAccess::create(std::size_t length, const MappingOperations& operations,
+                                    RangeValidator validate_range)
+    -> std::expected<AnonymousMapping, core::Error> {
+    if (length == 0U)
+        return std::unexpected{mapping_error("linux.mapping.invalid_length", "Anonymous mapping length must not be zero",
+                                             "AnonymousMapping.create", "zero_length")};
+    return finish_mapping(length, operations, request_mapping(length, operations), validate_range);
+}
+
+auto AnonymousMappingAccess::create_explicit_hugetlb_2m(std::size_t length, const MappingOperations& operations)
+    -> std::expected<AnonymousMapping, core::Error> {
+    if (length == 0U || length % hugetlb_2m_bytes != 0U)
+        return std::unexpected{mapping_error("linux.mapping.invalid_length", "Expected a whole number of 2 MiB pages",
+                                             "AnonymousMapping.create", "hugetlb_extent")};
+    return finish_mapping(length, operations, request_mapping(length, operations, explicit_hugetlb_2m_flags()),
+                          validate_mapping_range);
+}
+
+auto time_anonymous_mapping(std::size_t length, const MappingOperations& mapping,
+                            const ClockOperations& clock) -> TimedAnonymousMapping {
+    auto start = RawMonotonicClockAccess::now(clock);
+    if (!start) return {std::move(start)};
+    const auto mapped = request_mapping(length, mapping);
+    auto end = RawMonotonicClockAccess::now(clock);
+    return {std::move(start), std::move(end), finish_mapping(length, mapping, mapped, validate_mapping_range)};
 }
 
 } // namespace detail

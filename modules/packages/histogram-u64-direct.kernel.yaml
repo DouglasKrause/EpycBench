@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: direct-u64-weighted-histogram/v1
+task: histogram-u64.task.yaml
+module: histogram-u64-direct.so
+tuning: {}

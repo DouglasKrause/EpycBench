@@ -1,0 +1,7 @@
+schema: epycbench.task/v1
+id: task.map.affine32.f64/v1
+oracle: affine-f64-oracle.so
+work: {unit: element, metric: units_per_second}
+parameters:
+  element_count: {type: uint64, min: 1, max: 1152921504606846975}
+  input_seed: {type: uint64, default: 0}

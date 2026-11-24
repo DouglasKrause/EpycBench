@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-merge-run-copy/v1
+task: merge-u64.task.yaml
+module: merge-u64-run-copy.so
+tuning: {}

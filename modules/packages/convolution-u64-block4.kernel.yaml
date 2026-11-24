@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: block4-u64-convolution5/v1
+task: convolution-u64.task.yaml
+module: convolution-u64-block4.so
+tuning: {}

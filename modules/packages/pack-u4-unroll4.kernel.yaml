@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u4-pack-unroll4/v1
+task: pack-u4.task.yaml
+module: pack-u4-unroll4.so
+tuning: {}

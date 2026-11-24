@@ -1,0 +1,38 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+- path: /workloads/problem/parameters/rows
+  values:
+  - 508
+  - 509
+- path: /workloads/problem/parameters/columns
+  values:
+  - 2
+  - 4
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    problem:
+      task: task.spmv.csr.u64/v1
+      parameters:
+        rows: 508
+        columns: 2
+        input_seed: 19
+  roles:
+  - id: baseline
+    workload: problem
+    implementation: scalar-u64-spmv-csr/v1
+    cpus:
+    - 0
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: unroll4-u64-spmv-csr/v1
+    cpus:
+    - 0
+    numa_node: 0
+  execution:
+    repetitions: 32
+    blocks: 4
+    order_seed: 7

@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-stencil5-column/v1
+task: stencil-u64.task.yaml
+module: stencil-u64-column.so
+tuning: {}

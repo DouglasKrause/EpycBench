@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: avx-f64-norm-l1/v1
+task: norm-l1-f64.task.yaml
+module: norm-l1-f64-avx.so
+tuning: {}

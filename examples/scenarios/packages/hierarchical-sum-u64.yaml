@@ -1,0 +1,21 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  reduction:
+    task: epycbench.task.sum-u64.partitioned-aggregation/v1
+    parameters: {element_count: 1048576, input_seed: 7}
+roles:
+  - id: flat
+    workload: reduction
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    tuning: {aggregation: flat}
+    cpus: [0, 1, 2, 3]
+    numa_nodes: [0, 0, 1, 1]
+  - id: tree
+    workload: reduction
+    implementation: scalar-u64-sum-single-atomic-barrier/v1
+    tuning: {aggregation: topology-tree}
+    cpus: [0, 1, 2, 3]
+    numa_nodes: [0, 0, 1, 1]
+execution: {repetitions: 8, blocks: 4, order_seed: 7}
+output: {directory: /tmp/epycbench-hierarchical-sum-u64, format: json}

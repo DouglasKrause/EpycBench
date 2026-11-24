@@ -47,4 +47,7 @@ template <PrimaryMetric Metric> class OutlierFlaggingResult {
     std::span<const DependentLoadLatency> samples)
     -> std::expected<OutlierFlaggingResult<DependentLoadLatency>, core::Error>;
 
+[[nodiscard]] auto flag_task_throughput_outliers(std::span<const TaskThroughput> samples)
+    -> std::expected<OutlierFlaggingResult<TaskThroughput>, core::Error>;
+
 } // namespace epycbench::statistics

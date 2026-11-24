@@ -1,0 +1,7 @@
+schema: epycbench.task/v1
+id: task.barrier.round.u64/v1
+oracle: two-rank-barrier-oracle.so
+ranks: {min: 2, max: 2, distinct_cores: true}
+collective: true
+work: {unit: round, metric: units_per_second}
+parameters: {}

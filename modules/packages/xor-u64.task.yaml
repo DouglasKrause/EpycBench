@@ -1,0 +1,10 @@
+schema: epycbench.task/v1
+id: task.map.xor.u64/v1
+oracle: xor-u64-oracle.so
+partition_extent_parameters: [element_count]
+ports: {inputs: {input: bytes}, outputs: {output: bytes, checksum: u64-le}}
+work: {unit: element, metric: units_per_second}
+parameters:
+  element_count: {type: uint64, min: 1, max: 1152921504606846975}
+  input_seed: {type: uint64, default: 0}
+  xor_mask: {type: uint64, default: 11400714819323198485}

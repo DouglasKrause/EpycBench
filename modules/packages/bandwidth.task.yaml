@@ -1,0 +1,8 @@
+schema: epycbench.task/v1
+id: memory.bandwidth.read/v1
+oracle: bandwidth-oracle.so
+parameters:
+  working_set_lines: {type: uint64, min: 64, max: 288230376151711743}
+work: {unit: byte, metric: units_per_second}
+input_scaling: per_worker
+ports: {inputs: {input: bytes}, outputs: {checksum: u64-le}}

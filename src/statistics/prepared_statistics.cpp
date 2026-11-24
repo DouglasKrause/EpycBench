@@ -176,6 +176,17 @@ auto make_bandwidth_prepared(core::ByteCount bytes, core::Duration elapsed) noex
     return detail::PrimaryMetricAccess::bandwidth(value);
 }
 
+auto make_task_throughput_prepared(core::WorkCount tasks, core::Duration elapsed) noexcept
+    -> std::expected<TaskThroughput, Failure> {
+    if (tasks.value() == 0U || elapsed.value() == 0U)
+        return std::unexpected{Failure::invalid_input};
+    const double value = static_cast<double>(tasks.value()) * 1'000'000'000.0 /
+                         static_cast<double>(elapsed.value());
+    if (!std::isfinite(value) || value <= 0.0)
+        return std::unexpected{Failure::numeric_failure};
+    return detail::PrimaryMetricAccess::task_throughput(value);
+}
+
 auto make_dependent_load_latency_prepared(core::Duration elapsed,
                                           core::WorkCount work) noexcept
     -> std::expected<DependentLoadLatency, Failure> {
@@ -217,6 +228,12 @@ auto block_dependent_load_latency_representatives_prepared(
     return representatives(first, second, detail::PrimaryMetricAccess::latency);
 }
 
+auto block_task_throughput_representatives_prepared(
+    std::array<TaskThroughput, 2> first, std::array<TaskThroughput, 2> second) noexcept
+    -> std::expected<BlockRepresentatives<TaskThroughput>, Failure> {
+    return representatives(first, second, detail::PrimaryMetricAccess::task_throughput);
+}
+
 auto prepared_effect(double minuend, double subtrahend) noexcept
     -> std::expected<PairedLogEffect, Failure> {
     const double value = std::log(minuend) - std::log(subtrahend);
@@ -235,6 +252,12 @@ auto dependent_load_latency_log_effect_prepared(
     -> std::expected<PairedLogEffect, Failure> {
     return prepared_effect(value.first().seconds_per_completed_load(),
                            value.second().seconds_per_completed_load());
+}
+
+auto task_throughput_log_effect_prepared(
+    const BlockRepresentatives<TaskThroughput>& value) noexcept
+    -> std::expected<PairedLogEffect, Failure> {
+    return prepared_effect(value.second().tasks_per_second(), value.first().tasks_per_second());
 }
 
 auto evaluate_adaptive_stopping_prepared(
@@ -282,6 +305,18 @@ auto flag_dependent_load_latency_outliers_prepared(
     PreparedOutlierWorkspace<DependentLoadLatency> workspace) noexcept
     -> std::expected<OutlierFlaggingResult<DependentLoadLatency>, Failure> {
     return flag(samples, workspace, detail::PrimaryMetricAccess::latency);
+}
+
+auto summarize_task_throughput_prepared(std::span<const TaskThroughput> samples,
+    PreparedDescriptiveWorkspace<TaskThroughput> workspace) noexcept
+    -> std::expected<DescriptiveStatistics<TaskThroughput>, Failure> {
+    return summarize(samples, workspace, detail::PrimaryMetricAccess::task_throughput);
+}
+
+auto flag_task_throughput_outliers_prepared(std::span<const TaskThroughput> samples,
+    PreparedOutlierWorkspace<TaskThroughput> workspace) noexcept
+    -> std::expected<OutlierFlaggingResult<TaskThroughput>, Failure> {
+    return flag(samples, workspace, detail::PrimaryMetricAccess::task_throughput);
 }
 
 auto aggregate_log_effects_prepared(std::span<const PairedLogEffect> effects,

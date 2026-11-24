@@ -1,0 +1,32 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  reduction:
+    task: epycbench.task.sum-u64.partitioned-aggregation/v1
+    parameters:
+      element_count: 1048576
+      input_seed: 7
+roles:
+- id: one-rank
+  workload: reduction
+  implementation: scalar-u64-sum-single-atomic-barrier/v1
+  tuning:
+    aggregation: flat
+  cpus:
+  - 0
+  numa_node: 0
+- id: two-ranks
+  workload: reduction
+  implementation: scalar-u64-sum-single-atomic-barrier/v1
+  tuning:
+    aggregation: flat
+  cpus:
+  - 0
+  - 1
+  numa_node: 0
+execution:
+  repetitions: 8
+  blocks: 4
+  order_seed: 7
+  hardware_counters: true
+output: {directory: /tmp/epycbench-collective-worker-hardware-counters, format: json}

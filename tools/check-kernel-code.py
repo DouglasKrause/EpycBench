@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "kernel-object-audit"))
-from kernel_object_audit.framework import (
+from kernel_object_audit.elf import (
     AuditError, CommandResult, REGISTER_RE, SYMBOL_RE, checked_run,
     demangle_symbols, extract_function_bytes, parse_disassembly, parse_sections,
     parse_symbols, select_symbol,
@@ -93,6 +93,12 @@ def dependent_load(loop):
 
 def assess(family, instructions):
     """Fail clear defects; unfamiliar compiler shapes remain nonblocking warnings."""
+    if family == "allocation-mapping":
+        if any(item.mnemonic.startswith("call") or
+               (item.mnemonic.startswith("jmp") and item.branch_target is None)
+               for item in instructions):
+            return "pass", "The adapter transfers to the supplied anonymous mapping service."
+        return "fail", "The adapter contains no transfer to the mapping service."
     start = instructions[0].address
     stop = instructions[-1].address + len(instructions[-1].raw_bytes.split())
     # Helpers, indirect control flow and special memory instructions may perform
@@ -104,6 +110,11 @@ def assess(family, instructions):
         return "warning", "Work may use a helper or unfamiliar control flow; no basic failure established."
     loops = [[item for item in instructions if branch.branch_target <= item.address <= branch.address]
              for branch in instructions if branch.back_edge]
+    if family == "first-touch":
+        if any(operand.access_role in ("write", "read_write") and not operand.stack_derived
+               for loop in loops for item in loop for operand in item.memory_operands):
+            return "pass", "Repeated writes to the supplied range are present."
+        return "fail", "No repeated output writes remain in the routine."
     if not loops:
         return "fail", "No repeated memory-reading work remains in the routine."
     reading_loops = [loop for loop in loops if memory_reads(loop)]
@@ -113,8 +124,17 @@ def assess(family, instructions):
                for loop in loops for item in loop if item.mnemonic not in ("lea", "nop")):
             return "warning", "Repeated memory work uses an unrecognized form; no basic failure established."
         return "fail", "The repeated work contains no memory reads."
-    if family == "bandwidth":
+    if family in ("bandwidth", "task-sum-u64", "task-dot-f64", "task-max-u64", "task-min-u64",
+                  "task-norm-l1-f64", "task-sum-f64", "task-varint14-u64", "task-gather-u64"):
         return "pass", "Repeated memory reads are present."
+    if family in ("task-map-xor-u64", "task-map-affine-f64", "task-copy-bytes", "task-gemm-u64",
+                  "task-compact-u64", "task-prefix-scan-u64", "task-merge-u64", "task-transpose-u64", "task-stencil-u64", "task-convolution-u64", "task-histogram-u64", "task-stable-key-sort-u64", "task-search-tree-u64", "task-scatter-u64", "task-csr-u64", "task-bfs-u64", "task-pack-u4", "task-serialize-u64", "task-shared-state"):
+        if any(operand.access_role in ("write", "read_write") and not operand.stack_derived
+               for loop in reading_loops for item in loop for operand in item.memory_operands):
+            return "pass", "Repeated memory reads and writes are present."
+        if all(simple_flow(loop) for loop in reading_loops):
+            return "fail", "The memory-reading loops contain no output writes."
+        return "warning", "Output writes use an unrecognized form; no basic failure established."
     if any(dependent_load(loop) for loop in reading_loops if simple_flow(loop)):
         return "pass", "Repeated memory reads retain a load-to-next-address dependency."
     if all(simple_flow(loop) for loop in reading_loops):
@@ -139,7 +159,7 @@ def inspect(executable, runner=None, functions=None):
         try:
             symbol, section = select_symbol(symbols, signature, sections)
             raw = extract_function_bytes(executable, symbol, section)
-            listing = checked_run(runner, ["objdump", "-d", "-M", "intel",
+            listing = checked_run(runner, ["objdump", "-d", "--insn-width=16", "-M", "intel",
                 f"--start-address={symbol.value}", f"--stop-address={symbol.value + symbol.size}",
                 str(executable)])
             instructions = parse_disassembly(listing, symbol.value, symbol.value + symbol.size)
@@ -156,7 +176,10 @@ def main(argv=None):
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--executable", type=Path)
     source.add_argument("--module", type=Path)
-    parser.add_argument("--family", choices=("bandwidth", "latency"))
+    parser.add_argument("--family", choices=("bandwidth", "latency", "first-touch", "allocation-mapping", "task-sum-u64", "task-map-xor-u64",
+                                             "task-map-affine-f64", "task-dot-f64", "task-max-u64", "task-min-u64", "task-norm-l1-f64", "task-sum-f64",
+                                             "task-copy-bytes", "task-chase4-u64", "task-varint14-u64", "task-gemm-u64",
+                                             "task-gather-u64", "task-compact-u64", "task-prefix-scan-u64", "task-merge-u64", "task-transpose-u64", "task-stencil-u64", "task-convolution-u64", "task-histogram-u64", "task-stable-key-sort-u64", "task-search-tree-u64", "task-scatter-u64", "task-csr-u64", "task-bfs-u64", "task-pack-u4", "task-serialize-u64", "task-shared-state"))
     parser.add_argument("--symbol", default="epycbench_kernel_execute_v1")
     parser.add_argument("--output", required=True, type=Path)
     arguments = parser.parse_args(argv)

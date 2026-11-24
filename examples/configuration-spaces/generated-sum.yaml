@@ -1,0 +1,27 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+  - path: /roles/1/implementation
+    values: [generated-scalar-u64-sum-a2/v1, generated-scalar-u64-sum-a8/v1]
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    sum:
+      task: task.sum.u64/v1
+      parameters: {element_count: 1048576, input_seed: 0}
+  roles:
+    - id: baseline
+      workload: sum
+      implementation: scalar-u64-sum-single/v1
+      cpus: [0]
+      numa_node: 0
+    - id: generated
+      workload: sum
+      implementation: generated-scalar-u64-sum-a2/v1
+      cpus: [0]
+      numa_node: 0
+  execution:
+    repetitions: 8
+    blocks: 4
+    order_seed: 918273645

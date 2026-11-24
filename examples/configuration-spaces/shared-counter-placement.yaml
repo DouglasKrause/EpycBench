@@ -1,0 +1,39 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+- path: /roles/1/cpus
+  values:
+  - - 0
+    - 1
+  - - 0
+    - 16
+- path: /roles/1/numa_node
+  values:
+  - 0
+  - 1
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    problem:
+      task: task.atomic.counter.u64/v1
+      parameters: {}
+  roles:
+  - id: baseline
+    workload: problem
+    implementation: builtin-u64-atomic-shared/v1
+    cpus:
+    - 0
+    - 1
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: builtin-u64-atomic-distinct/v1
+    cpus:
+    - 0
+    - 1
+    numa_node: 0
+  execution:
+    repetitions: 32
+    blocks: 4
+    order_seed: 7

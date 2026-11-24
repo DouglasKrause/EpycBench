@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: builtin-u64-atomic-distinct/v1
+task: shared-atomic-counter.task.yaml
+module: shared-atomic-counter-distinct.so
+tuning: {}

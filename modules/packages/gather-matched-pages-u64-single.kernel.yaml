@@ -1,0 +1,6 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-gather-pages-single/v1
+task: gather-page-set-u64.task.yaml
+module: gather-matched-pages-u64-single.so
+tuning: {}
+accepts: {index_pattern: [pages-compact, pages-spread]}

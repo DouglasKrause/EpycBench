@@ -12,7 +12,8 @@ namespace epycbench::statistics {
 
 template <typename Metric>
 concept PrimaryMetric = std::same_as<Metric, Bandwidth> ||
-                        std::same_as<Metric, DependentLoadLatency>;
+                        std::same_as<Metric, DependentLoadLatency> ||
+                        std::same_as<Metric, TaskThroughput>;
 
 template <PrimaryMetric Metric> class DescriptiveStatistics {
   public:
@@ -59,5 +60,8 @@ template <PrimaryMetric Metric> class DescriptiveStatistics {
 [[nodiscard]] auto summarize_dependent_load_latency(
     std::span<const DependentLoadLatency> samples)
     -> std::expected<DescriptiveStatistics<DependentLoadLatency>, core::Error>;
+
+[[nodiscard]] auto summarize_task_throughput(std::span<const TaskThroughput> samples)
+    -> std::expected<DescriptiveStatistics<TaskThroughput>, core::Error>;
 
 } // namespace epycbench::statistics

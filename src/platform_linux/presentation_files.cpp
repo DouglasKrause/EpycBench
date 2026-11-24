@@ -3,6 +3,7 @@
 #include "epycbench/platform_linux/file_descriptor.hpp"
 #include "platform_linux/journal_file.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <fcntl.h>
 #include <span>
@@ -121,7 +122,30 @@ auto file_status(const std::filesystem::path& filename) -> std::expected<FileSta
     if(!S_ISREG(value.st_mode))return std::unexpected{Failure{Stage::identity,EINVAL}};
     return FileStatus{true,static_cast<std::int64_t>(value.st_mtim.tv_sec)};
 }
+auto regular_leaf_names(const std::filesystem::path& path, std::string_view suffix,
+    std::size_t maximum_entries) -> std::expected<std::vector<std::string>,Failure> {
+    std::error_code error;
+    std::filesystem::directory_iterator entry{path, error};
+    if (error) return std::unexpected{Failure{Stage::directory, error.value()}};
+    const std::filesystem::directory_iterator end;
+    std::vector<std::string> names;
+    std::size_t scanned{};
+    for (; entry != end; entry.increment(error)) {
+        if (error) return std::unexpected{Failure{Stage::directory, error.value()}};
+        if (scanned == maximum_entries) return std::unexpected{Failure{Stage::directory, EFBIG}};
+        ++scanned;
+        auto leaf = entry->path().filename().string();
+        if (!leaf.ends_with(suffix)) continue;
+        const auto status = entry->symlink_status(error);
+        if (error) return std::unexpected{Failure{Stage::status, error.value()}};
+        if (std::filesystem::is_regular_file(status)) names.push_back(std::move(leaf));
+    }
+    if (error) return std::unexpected{Failure{Stage::directory, error.value()}};
+    std::ranges::sort(names);
+    return names;
+}
 auto stdout_is_terminal() noexcept -> bool {return ::isatty(STDOUT_FILENO)==1;}
+auto interactive_terminal() noexcept -> bool {return stdout_is_terminal() && ::isatty(STDIN_FILENO)==1;}
 auto terminal_dimensions() noexcept -> TerminalDimensions {
     struct winsize size{};
     if(::ioctl(STDOUT_FILENO,TIOCGWINSZ,&size)==0&&size.ws_col&&size.ws_row)

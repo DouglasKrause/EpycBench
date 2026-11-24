@@ -1,0 +1,38 @@
+schema: epycbench.configuration-space/v3
+objective: seconds_per_completed_task
+axes:
+- path: /workloads/problem/parameters/element_count
+  values:
+  - 32768
+  - 1048576
+- path: /workloads/problem/parameters/xor_mask
+  values:
+  - 1
+  - 11400714819323198485
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    problem:
+      task: task.map.xor.u64/v1
+      parameters:
+        element_count: 1048576
+        input_seed: 0
+        xor_mask: 11400714819323198485
+  roles:
+  - id: baseline
+    workload: problem
+    implementation: scalar-u64-xor-single/v1
+    cpus:
+    - 0
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: scalar-u64-xor-four/v1
+    cpus:
+    - 0
+    numa_node: 0
+  execution:
+    repetitions: 32
+    blocks: 4
+    order_seed: 7

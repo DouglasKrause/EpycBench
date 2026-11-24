@@ -53,13 +53,17 @@ struct Environment {
     std::function<std::expected<LoadedTopology, core::Error>(std::string_view,
                                                              TopologyJsonInputPolicy)>
         deserialize;
-    std::function<std::expected<std::string, CliFailure>(const std::filesystem::path&)> read_file;
+    std::function<std::expected<std::string, CliFailure>(const std::filesystem::path&, std::size_t)>
+        read_bounded_file;
+    [[nodiscard]] auto read_file(const std::filesystem::path& path) const {
+        return read_bounded_file(path, 64U * 1024U * 1024U);
+    }
     std::function<std::expected<void, CliFailure>(const std::filesystem::path&, std::string_view,
                                                   bool)>
         publish_file;
 };
 
-[[nodiscard]] auto make_production_environment(std::size_t maximum_input_bytes = 64U * 1024U * 1024U) -> Environment;
+[[nodiscard]] auto make_production_environment() -> Environment;
 
 [[nodiscard]] auto run(int argc, char* argv[], Environment& environment, std::ostream& output,
                        std::ostream& error) -> int;

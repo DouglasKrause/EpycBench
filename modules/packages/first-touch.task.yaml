@@ -1,0 +1,9 @@
+schema: epycbench.task/v1
+id: memory.first-touch/v1
+oracle: first-touch-oracle.so
+mapping: first_touch
+parameters:
+  page_mode: {type: enum, values: [base, hugetlb-2m], default: base}
+  pages: {type: uint64, min: 1, max: 4096}
+ranks: {min: 1, max: 1}
+work: {unit: page_first_written, metric: seconds_per_unit}

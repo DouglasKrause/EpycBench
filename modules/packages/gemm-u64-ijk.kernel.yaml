@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-gemm-ijk/v1
+task: gemm-u64.task.yaml
+module: gemm-u64-ijk.so
+tuning: {}

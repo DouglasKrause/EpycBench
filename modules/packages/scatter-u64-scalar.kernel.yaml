@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-scatter-keyed/v1
+task: scatter-u64.task.yaml
+module: scatter-u64-scalar.so
+tuning: {}

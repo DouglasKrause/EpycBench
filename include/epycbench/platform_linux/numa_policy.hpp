@@ -36,4 +36,9 @@ class NativeNumaMask {
 [[nodiscard]] auto bind_memory(const AnonymousMapping& mapping, const NativeNumaMask& nodes)
     -> std::expected<void, core::Error>;
 
+// One full-range absolute-node interleave policy; does not prefault, migrate or
+// retry using another policy if the kernel rejects the request.
+[[nodiscard]] auto interleave_memory(const AnonymousMapping& mapping, const NativeNumaMask& nodes)
+    -> std::expected<void, core::Error>;
+
 } // namespace epycbench::platform_linux

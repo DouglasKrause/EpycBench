@@ -1,0 +1,6 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-gather-set-four/v1
+task: gather-page-set-u64.task.yaml
+module: gather-cache-set-u64-four.so
+tuning: {}
+accepts: {index_pattern: [set-fixed, set-cycle]}

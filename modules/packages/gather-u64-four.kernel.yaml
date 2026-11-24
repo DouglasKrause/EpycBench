@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-gather-sum-four/v1
+task: gather-u64.task.yaml
+module: gather-u64-four.so
+tuning: {}

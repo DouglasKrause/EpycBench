@@ -1,0 +1,23 @@
+schema: epycbench.scenario/packages-v1
+mode: pipeline
+workloads:
+  copy:
+    task: task.copy.bytes/v1
+    parameters: {byte_count: 32768, input_seed: 7}
+  transform:
+    task: task.map.xor.u64/v1
+    parameters: {element_count: 4096}
+roles:
+  - id: producer
+    workload: copy
+    implementation: scalar-u64-copy-bytes/v1
+    cpus: [0]
+    numa_node: 0
+  - id: consumer
+    workload: transform
+    implementation: scalar-u64-xor-four/v1
+    cpus: [1]
+    numa_node: 0
+    inputs: {input: output}
+execution: {repetitions: 32, blocks: 4, order_seed: 7}
+output: {directory: /tmp/epycbench-copy-xor-pipeline, format: json}

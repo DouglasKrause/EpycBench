@@ -1,0 +1,21 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  work:
+    task: memory.bandwidth.read/v1
+    parameters: {"working_set_lines": 16384}
+roles:
+  - id: bind
+    workload: work
+    implementation: scalar-u64-sequential/v1
+    cpus: [0]
+    numa_node: 0
+    input_placement: {policy: bind, nodes: [0, 1]}
+  - id: interleave
+    workload: work
+    implementation: scalar-u64-sequential/v1
+    cpus: [0]
+    numa_node: 0
+    input_placement: {policy: interleave, nodes: [0, 1]}
+execution: {"repetitions": 8, "blocks": 4, "order_seed": 170101}
+output: {directory: /tmp/epycbench-bandwidth-bind-interleave, format: json}

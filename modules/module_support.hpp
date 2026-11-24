@@ -1,20 +1,8 @@
 #pragma once
 
-#include "epycbench/kernel/plugin.h"
+#include "leaf_requests.hpp"
 
 #include <cstdint>
-
-#if defined(__clang__)
-#define EPYCBENCH_PLUGIN_COMPILER "Clang " __clang_version__
-#elif defined(__GNUC__)
-#define EPYCBENCH_PLUGIN_COMPILER "GCC " __VERSION__
-#else
-#define EPYCBENCH_PLUGIN_COMPILER "unknown"
-#endif
-
-#ifndef EPYCBENCH_PLUGIN_BUILD_INFO
-#define EPYCBENCH_PLUGIN_BUILD_INFO "C++23"
-#endif
 
 namespace epycbench::module_detail {
 inline auto prepare_bandwidth(const EpycBenchKernelRequestV1* request) noexcept -> int {

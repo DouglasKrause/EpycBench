@@ -1,0 +1,17 @@
+schema: epycbench.scenario/packages-v1
+mode: standalone
+workloads:
+  local-pages:
+    task: memory.first-touch/v1
+    parameters: {page_mode: base, pages: 256}
+roles:
+  - id: first-touch
+    workload: local-pages
+    implementation: byte-per-page/v1
+    cpus: [0]
+    service_cpu: 1
+    numa_node: 0
+execution: {repetitions: 1, blocks: 1}
+output:
+  directory: /path/to/private/results
+  format: json

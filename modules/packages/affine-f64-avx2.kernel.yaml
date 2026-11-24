@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: avx2-f64-affine32/v1
+task: affine-f64.task.yaml
+module: affine-f64-avx2.so
+tuning: {}

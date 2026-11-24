@@ -1,5 +1,6 @@
 #include "cli/terminal_menu.hpp"
 
+#include <charconv>
 #include <istream>
 #include <ostream>
 #include <string>
@@ -9,7 +10,8 @@ namespace epycbench::cli {
 
 auto run_terminal_menu(std::istream& input, std::ostream& output, std::ostream& error,
                        const MenuAction& help, const MenuAction& demo,
-                       const MenuAction& inspect, const MenuAction& view) -> int {
+                       const MenuAction& inspect, const MenuAction& view,
+                       std::span<const MenuEntry> additional) -> int {
     try {
         std::string line;
         for (;;) {
@@ -18,8 +20,10 @@ auto run_terminal_menu(std::istream& input, std::ostream& output, std::ostream& 
                       "2) Demo test run\n"
                       "3) Inspect this machine\n"
                       "4) View machine architecture\n"
-                      "5) Exit\n\n"
-                      "Choice: " << std::flush;
+                      "5) Exit\n";
+            for (std::size_t index = 0; index < additional.size(); ++index)
+                output << index + 6U << ") " << additional[index].label << '\n';
+            output << "\nChoice: " << std::flush;
             if (!output) return 1;
             if (!std::getline(input, line)) return input.eof() && !input.bad() ? 0 : 1;
 
@@ -36,6 +40,17 @@ auto run_terminal_menu(std::istream& input, std::ostream& output, std::ostream& 
             if(choice=="2"){action=&demo;label="Demo test run";}
             if(choice=="3"){action=&inspect;label="Machine inspection";}
             if(choice=="4"){action=&view;label="Machine architecture";}
+            if (!action && !additional.empty()) {
+                std::size_t number{};
+                const auto* end = choice.data() + choice.size();
+                const auto parsed = std::from_chars(choice.data(), end, number);
+                if (parsed.ec == std::errc{} && parsed.ptr == end && number >= 6U
+                    && number - 6U < additional.size()) {
+                    const auto& entry = additional[number - 6U];
+                    action = &entry.action;
+                    label = entry.label;
+                }
+            }
             if(action&&*action) {
                 const auto status=(*action)();
                 if(status!=0)error << label << " failed (exit code " << status << ").\n";
@@ -43,7 +58,7 @@ auto run_terminal_menu(std::istream& input, std::ostream& output, std::ostream& 
                     output << "Press Enter to return to the menu." << std::flush;
                     if(!std::getline(input,line))return input.eof()&&!input.bad()?0:1;
                 }
-            } else error << "Please enter a number from 1 to 5.\n";
+            } else error << "Please enter a number from 1 to " << 5U + additional.size() << ".\n";
             if (!output || !error) return 1;
         }
     } catch (const std::ios_base::failure&) {

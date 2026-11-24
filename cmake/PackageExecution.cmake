@@ -1,0 +1,18 @@
+add_library(epycbench_package_measurement_control STATIC src/measurement/package_control.cpp)
+target_include_directories(epycbench_package_measurement_control PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(epycbench_package_measurement_control PUBLIC EpycBench::core)
+epycbench_enable_build_options(epycbench_package_measurement_control)
+epycbench_enable_warnings(epycbench_package_measurement_control)
+
+add_library(epycbench_package_execution STATIC
+    src/platform_linux/package_execution.cpp src/platform_linux/package_workers.cpp
+    src/platform_linux/package_worker_monitoring.cpp)
+target_include_directories(epycbench_package_execution PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_compile_definitions(epycbench_package_execution PRIVATE _GNU_SOURCE)
+target_link_libraries(epycbench_package_execution PUBLIC EpycBench::core epycbench_package_measurement_control
+    PRIVATE EpycBench::platform_linux epycbench_kernel_package_manifest Threads::Threads ${CMAKE_DL_LIBS})
+epycbench_enable_build_options(epycbench_package_execution)
+epycbench_enable_warnings(epycbench_package_execution)
+include("${CMAKE_CURRENT_LIST_DIR}/PackageMappings.cmake")
+
+

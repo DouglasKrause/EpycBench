@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: avx-f64-sum/v1
+task: sum-f64.task.yaml
+module: sum-f64-avx.so
+tuning: {}

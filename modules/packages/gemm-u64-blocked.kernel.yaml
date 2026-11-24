@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: blocked8-u64-gemm-ikj/v1
+task: gemm-u64.task.yaml
+module: gemm-u64-blocked.so
+tuning: {}

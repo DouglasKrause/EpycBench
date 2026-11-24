@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: tiled8-u64-transpose/v1
+task: transpose-u64.task.yaml
+module: transpose-u64-tiled8.so
+tuning: {}

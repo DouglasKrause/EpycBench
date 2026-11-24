@@ -1,0 +1,7 @@
+schema: epycbench.task/v1
+id: task.queue.spsc.u64/v1
+oracle: spsc-queue-oracle.so
+ranks: {min: 2, max: 2, distinct_cores: true}
+collective: true
+work: {unit: transfer, metric: units_per_second}
+parameters: {}

@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-min-single/v1
+task: min-u64.task.yaml
+module: min-u64-scalar.so
+tuning: {}

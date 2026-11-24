@@ -1,0 +1,19 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  work:
+    task: task.group.histogram-weighted.u64.two-rank/v1
+    parameters: {"record_count": 513, "input_seed": 19}
+roles:
+  - id: baseline
+    workload: work
+    implementation: shared_atomic
+    cpus: [0, 1]
+    numa_node: 0
+  - id: candidate
+    workload: work
+    implementation: private_partials
+    cpus: [0, 1]
+    numa_node: 0
+execution: {repetitions: 1, blocks: 4, order_seed: 918273645}
+output: {directory: /tmp/epycbench-two-rank-histogram, format: json}

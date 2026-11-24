@@ -308,10 +308,22 @@ auto NumaAccess::create_mask(const core::LinuxNumaNodeSet& nodes, WordAllocator 
     }
 }
 
-auto NumaAccess::bind_range(void* address, std::size_t length, const NativeNumaMask& nodes,
-                            const NumaOperations& operations, std::uint64_t native_length_max)
+auto NumaAccess::interleave_prechecked(
+    void* address, unsigned long length, const NativeNumaMask& nodes,
+    const NumaOperations& operations) noexcept -> RawNumaResult {
+    return operations.bind(operations.context, address, length,
+                           MPOL_INTERLEAVE | MPOL_F_STATIC_NODES,
+                           nodes.data(), native_bind_maxnode(nodes), 0U);
+}
+
+namespace {
+enum class RangePolicy { bind, interleave };
+
+auto apply_range(void* address, std::size_t length, const NativeNumaMask& nodes,
+                 const NumaOperations& operations, std::uint64_t native_length_max,
+                 RangePolicy policy)
     -> std::expected<void, core::Error> {
-    constexpr std::string_view operation = "bind_memory";
+    const std::string_view operation = policy == RangePolicy::bind ? "bind_memory" : "interleave_memory";
     if (address == nullptr || length == 0 || nodes.word_count() == 0 || nodes.maxnode() == 0) {
         return std::unexpected{numa_error("linux.numa.invalid_argument", "Invalid NUMA bind input",
                                           operation, "invalid_mapping")};
@@ -322,10 +334,11 @@ auto NumaAccess::bind_range(void* address, std::size_t length, const NativeNumaM
                                           "length_out_of_range")};
     }
     try {
-        const auto raw = operations.bind(operations.context, address,
-                                         static_cast<unsigned long>(length),
-                                         MPOL_BIND | MPOL_F_STATIC_NODES,
-                                         nodes.data(), nodes.native_bind_maxnode_, 0);
+        const auto raw = policy == RangePolicy::interleave
+            ? NumaAccess::interleave_prechecked(address, static_cast<unsigned long>(length), nodes, operations)
+            : operations.bind(operations.context, address, static_cast<unsigned long>(length),
+                              MPOL_BIND | MPOL_F_STATIC_NODES, nodes.data(),
+                              NumaAccess::native_bind_maxnode(nodes), 0);
         if (raw.value == 0 && raw.error_number == 0) return {};
         if (raw.value == -1 && raw.error_number != 0) {
             return std::unexpected{numa_error("linux.numa.bind_failed", "Linux NUMA bind failed",
@@ -344,6 +357,20 @@ auto NumaAccess::bind_range(void* address, std::size_t length, const NativeNumaM
                                           "Linux NUMA bind contained an unknown failure", operation,
                                           "contained_unknown_failure")};
     }
+}
+
+} // namespace
+
+auto NumaAccess::bind_range(void* address, std::size_t length, const NativeNumaMask& nodes,
+                            const NumaOperations& operations, std::uint64_t native_length_max)
+    -> std::expected<void, core::Error> {
+    return apply_range(address, length, nodes, operations, native_length_max, RangePolicy::bind);
+}
+
+auto NumaAccess::interleave_range(void* address, std::size_t length, const NativeNumaMask& nodes,
+                                  const NumaOperations& operations, std::uint64_t native_length_max)
+    -> std::expected<void, core::Error> {
+    return apply_range(address, length, nodes, operations, native_length_max, RangePolicy::interleave);
 }
 
 } // namespace epycbench::platform_linux::detail
@@ -376,6 +403,17 @@ auto bind_memory(const AnonymousMapping& mapping, const NativeNumaMask& nodes)
     }
     return detail::NumaAccess::bind_range(const_cast<std::byte*>(mapping.data()), mapping.size(),
                                            nodes, detail::production_numa_operations());
+}
+
+auto interleave_memory(const AnonymousMapping& mapping, const NativeNumaMask& nodes)
+    -> std::expected<void, core::Error> {
+    if (!mapping.active()) {
+        return std::unexpected{detail::numa_error("linux.numa.invalid_argument",
+                                                  "NUMA interleave requires an active mapping",
+                                                  "interleave_memory", "invalid_mapping")};
+    }
+    return detail::NumaAccess::interleave_range(const_cast<std::byte*>(mapping.data()), mapping.size(),
+                                                nodes, detail::production_numa_operations());
 }
 
 } // namespace epycbench::platform_linux

@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: shared_atomic
+task: two_rank_histogram.task.yaml
+module: two_rank_histogram-shared_atomic.so
+tuning: {}

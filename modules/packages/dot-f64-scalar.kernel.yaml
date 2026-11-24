@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-f64-dot-single/v1
+task: dot-f64.task.yaml
+module: dot-f64-scalar.so
+tuning: {}

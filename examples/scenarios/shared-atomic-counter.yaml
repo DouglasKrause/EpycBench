@@ -1,0 +1,19 @@
+schema: epycbench.scenario/packages-v1
+mode: comparison
+workloads:
+  work:
+    task: task.atomic.counter.u64/v1
+    parameters: {}
+roles:
+  - id: baseline
+    workload: work
+    implementation: builtin-u64-atomic-shared/v1
+    cpus: [0, 1]
+    numa_node: 0
+  - id: candidate
+    workload: work
+    implementation: builtin-u64-atomic-distinct/v1
+    cpus: [0, 1]
+    numa_node: 0
+execution: {"repetitions": 2048, "blocks": 4, "order_seed": 918273645}
+output: {directory: /tmp/epycbench-shared-atomic-counter, format: json}

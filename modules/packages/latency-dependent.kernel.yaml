@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-random-cycle/v1
+task: latency.task.yaml
+module: latency-dependent.so
+tuning: {}

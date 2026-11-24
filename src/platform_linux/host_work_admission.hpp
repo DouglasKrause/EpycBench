@@ -59,12 +59,19 @@ struct HeadroomReceipt final {
     bool all_nodes_sufficient{};
     auto operator==(const HeadroomReceipt&) const -> bool = default;
 };
+struct NodeMemoryDemand final {
+    core::LinuxNumaNodeId node;
+    core::ByteCount minimum;
+};
 // Fixed, non-retaining parser. The caller authenticates the source and node.
 [[nodiscard]] auto parse_memory_bytes(std::string_view, std::optional<core::LinuxNumaNodeId>) noexcept
     -> std::expected<core::ByteCount, Reason>;
 [[nodiscard]] auto check_memory_headroom(core::ByteCount, bool selected_node) noexcept
     -> std::expected<void, Reason>;
 [[nodiscard]] auto read_headroom(std::span<const core::LinuxNumaNodeId>,
+    const ReadOperations&, ReadLimits = {}) noexcept -> std::expected<HeadroomReceipt, Failure>;
+// Check explicit allocation demand using the same bounded, authenticated readers.
+[[nodiscard]] auto read_headroom(core::ByteCount minimum_global, std::span<const NodeMemoryDemand>,
     const ReadOperations&, ReadLimits = {}) noexcept -> std::expected<HeadroomReceipt, Failure>;
 [[nodiscard]] auto production_read_operations() noexcept -> ReadOperations;
 

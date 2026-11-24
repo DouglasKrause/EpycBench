@@ -1,0 +1,42 @@
+#include "chase4_u64_module_support.hpp"
+
+// Canonical content is a host precondition; no timed range/content scan.
+// Serialized loop boundaries are compiler barriers, never hardware fences.
+extern "C" [[gnu::visibility("protected"), gnu::noinline, gnu::target("sse2,no-avx")]]
+auto epycbench_chase4_u64_interleaved_body(const unsigned char* input, std::size_t nodes,
+                                           std::uint64_t repetitions) noexcept -> std::uint64_t {
+    std::uint64_t folded{};
+    const auto hops = static_cast<std::uint64_t>(nodes) + 1U;
+    for (std::uint64_t repetition{}; repetition < repetitions; ++repetition) {
+        asm volatile("" ::: "memory");
+        std::size_t first{}, second = nodes, third = 2U * nodes, fourth = 3U * nodes;
+        for (auto remaining = hops; remaining != 0U; --remaining) {
+            std::uint64_t first_next;
+            std::memcpy(&first_next, input + first * 64U, sizeof(first_next));
+            first = static_cast<std::size_t>(first_next);
+            std::uint64_t second_next;
+            std::memcpy(&second_next, input + second * 64U, sizeof(second_next));
+            second = static_cast<std::size_t>(second_next);
+            std::uint64_t third_next;
+            std::memcpy(&third_next, input + third * 64U, sizeof(third_next));
+            third = static_cast<std::size_t>(third_next);
+            std::uint64_t fourth_next;
+            std::memcpy(&fourth_next, input + fourth * 64U, sizeof(fourth_next));
+            fourth = static_cast<std::size_t>(fourth_next);
+        }
+        folded += static_cast<std::uint64_t>(first) + 3U * static_cast<std::uint64_t>(second) +
+                  5U * static_cast<std::uint64_t>(third) + 7U * static_cast<std::uint64_t>(fourth);
+    }
+    asm volatile("" ::: "memory");
+    return folded;
+}
+extern "C" [[gnu::visibility("default"), gnu::noinline]] auto
+epycbench_kernel_execute_v2(const EpycBenchKernelRequestV2* request,
+                            std::uint64_t* checksum) noexcept -> int {
+    if (epycbench::module_detail::prepare_chase4_u64(request) != 0 ||
+        !epycbench::module_detail::valid_chase4_u64_checksum(*request, checksum))
+        return 1;
+    *checksum = epycbench_chase4_u64_interleaved_body(
+        request->data, static_cast<std::size_t>(request->bytes / 256U), request->repetitions);
+    return 0;
+}

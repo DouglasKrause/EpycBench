@@ -1,0 +1,5 @@
+schema: epycbench.kernel/v1
+id: scalar-u64-xor-single/v1
+task: xor-u64.task.yaml
+module: xor-u64-single.so
+tuning: {}

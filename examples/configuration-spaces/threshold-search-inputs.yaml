@@ -1,0 +1,38 @@
+schema: epycbench.configuration-space/v3
+objective: tasks_per_second
+axes:
+- path: /workloads/problem/parameters/query_count
+  values:
+  - 256
+  - 512
+- path: /workloads/problem/parameters/query_order
+  values:
+  - grouped
+  - permuted
+scenario:
+  schema: epycbench.scenario/packages-v1
+  mode: comparison
+  workloads:
+    problem:
+      task: task.search.lower-bound-tree.u64/v1
+      parameters:
+        query_count: 256
+        query_order: grouped
+        input_seed: 19
+  roles:
+  - id: baseline
+    workload: problem
+    implementation: binary-lower-bound-u64/v1
+    cpus:
+    - 0
+    numa_node: 0
+  - id: candidate
+    workload: problem
+    implementation: four-step-lower-bound-u64/v1
+    cpus:
+    - 0
+    numa_node: 0
+  execution:
+    repetitions: 32
+    blocks: 4
+    order_seed: 7
